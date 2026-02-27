@@ -9,7 +9,11 @@ mod test;
 #[derive(Clone)]
 #[contracttype]
 pub struct StartupData {
-    pub url_or_hash: String,
+    pub project_name: String,
+    pub description: String,
+    pub project_url: String,
+    pub team_info: String,
+    pub funding_goal: i128,
     pub total_allocated: i128,
     pub unlocked_balance: i128,
     pub claimed_balance: i128,
@@ -35,6 +39,7 @@ pub enum DataKey {
     VCApproved(Address),
     VCRequest(Address),
     Vote(Address, Address), // (voter_address, founder_address)
+    AllStartups,
 }
 
 #[contract]
@@ -52,9 +57,16 @@ impl DeCoMVP {
         env.storage().instance().set(&DataKey::ApplicationFee, &fee);
     }
 
-    /// Founder applies by submitting project link
-    /// Note: Application fee should be paid separately via XLM transfer to admin
-    pub fn apply(env: Env, founder: Address, project_link: String) {
+    /// Founder applies by submitting project details
+    pub fn apply(
+        env: Env,
+        founder: Address,
+        project_name: String,
+        description: String,
+        project_url: String,
+        team_info: String,
+        funding_goal: i128,
+    ) {
         founder.require_auth();
 
         // Check if already applied
@@ -67,7 +79,11 @@ impl DeCoMVP {
 
         // Create startup entry with voting enabled
         let startup_data = StartupData {
-            url_or_hash: project_link,
+            project_name,
+            description,
+            project_url,
+            team_info,
+            funding_goal,
             total_allocated: 0,
             unlocked_balance: 0,
             claimed_balance: 0,
@@ -79,7 +95,25 @@ impl DeCoMVP {
 
         env.storage()
             .instance()
-            .set(&DataKey::Startup(founder), &startup_data);
+            .set(&DataKey::Startup(founder.clone()), &startup_data);
+
+        // Add to all startups list
+        let mut all_startups: soroban_sdk::Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::AllStartups)
+            .unwrap_or(soroban_sdk::Vec::new(&env));
+        
+        all_startups.push_back(founder);
+        env.storage().instance().set(&DataKey::AllStartups, &all_startups);
+    }
+
+    /// Get all startup addresses
+    pub fn get_all_startups(env: Env) -> soroban_sdk::Vec<Address> {
+        env.storage()
+            .instance()
+            .get(&DataKey::AllStartups)
+            .unwrap_or(soroban_sdk::Vec::new(&env))
     }
 
     /// Public voting on startup applications

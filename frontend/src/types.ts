@@ -1,5 +1,9 @@
 export interface StartupData {
-  url_or_hash: string;
+  project_name: string;
+  description: string;
+  project_url: string;
+  team_info: string;
+  funding_goal: string;
   total_allocated: string;
   unlocked_balance: string;
   claimed_balance: string;

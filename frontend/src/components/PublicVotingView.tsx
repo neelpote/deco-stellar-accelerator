@@ -3,16 +3,90 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { signTransaction } from '@stellar/freighter-api';
 import { CONTRACT_ID, NETWORK_PASSPHRASE } from '../config';
-import { server, getStartupStatus } from '../stellar';
+import { server, getStartupStatus, getAllStartups } from '../stellar';
 
 interface PublicVotingViewProps {
   publicKey: string;
 }
 
+// Application Card Component
+const ApplicationCard = ({ address, index, onClick }: { address: string; index: number; onClick: () => void }) => {
+  const { data: startup } = useQuery({
+    queryKey: ['startupCard', address],
+    queryFn: () => getStartupStatus(address),
+    staleTime: 10000,
+  });
+
+  if (!startup) {
+    return (
+      <div className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+        <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+      </div>
+    );
+  }
+
+  const isVotingActive = Math.floor(Date.now() / 1000) < startup.voting_end_time;
+  const totalVotes = startup.yes_votes + startup.no_votes;
+  const yesPercentage = totalVotes > 0 ? (startup.yes_votes / totalVotes) * 100 : 0;
+
+  return (
+    <button
+      onClick={onClick}
+      className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 border-2 border-gray-200 hover:border-green-400 hover:shadow-lg transition-all text-left w-full"
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg font-bold text-gray-400">#{index}</span>
+            <h4 className="text-lg font-bold text-gray-800 truncate">{startup.project_name}</h4>
+          </div>
+          <p className="text-sm text-gray-600 line-clamp-2 mb-3">{startup.description}</p>
+        </div>
+        <div className={`ml-4 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+          isVotingActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        }`}>
+          {isVotingActive ? '🟢 OPEN' : '🔴 CLOSED'}
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <span>👍</span>
+            <span className="font-semibold text-green-600">{startup.yes_votes}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>👎</span>
+            <span className="font-semibold text-red-600">{startup.no_votes}</span>
+          </div>
+        </div>
+        <div className="text-gray-500">
+          {yesPercentage.toFixed(0)}% Yes
+        </div>
+      </div>
+
+      {startup.approved && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <span className="text-xs font-semibold text-green-600">✅ Approved by Admin</span>
+        </div>
+      )}
+    </button>
+  );
+};
+
 export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
   const [searchAddress, setSearchAddress] = useState('');
   const [viewingAddress, setViewingAddress] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Fetch all startups
+  const { data: allStartups = [] } = useQuery({
+    queryKey: ['allStartups'],
+    queryFn: getAllStartups,
+    refetchInterval: 30000,
+  });
 
   const { data: startupData, isLoading } = useQuery({
     queryKey: ['votingStartup', viewingAddress],
@@ -168,6 +242,29 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
         </div>
       </div>
 
+      {/* All Applications List */}
+      {allStartups.length > 0 && !viewingAddress && (
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+          <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            <span className="text-3xl mr-3">📋</span>
+            All Applications ({allStartups.length})
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Browse all startup applications and click to view details and vote
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {allStartups.map((address: string, index: number) => (
+              <ApplicationCard
+                key={address}
+                address={address}
+                index={index + 1}
+                onClick={() => setViewingAddress(address)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search Section */}
       <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
         <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
@@ -225,15 +322,33 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
 
                 <div className="bg-white rounded-xl p-6 space-y-4">
                   <div>
+                    <div className="text-sm text-gray-600 mb-1">Project Name</div>
+                    <div className="text-xl font-bold text-gray-800">{startupData.project_name}</div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Description</div>
+                    <p className="text-gray-800">{startupData.description}</p>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
                     <div className="text-sm text-gray-600 mb-1">Project URL</div>
                     <a
-                      href={startupData.url_or_hash}
+                      href={startupData.project_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 font-semibold hover:underline text-lg"
                     >
-                      {startupData.url_or_hash}
+                      {startupData.project_url}
                     </a>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Team Information</div>
+                    <p className="text-gray-800">{startupData.team_info}</p>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Funding Goal</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {(Number(startupData.funding_goal) / 1e7).toFixed(2)} USDC
+                    </div>
                   </div>
                   <div className="pt-4 border-t border-gray-200">
                     <div className="text-sm text-gray-600 mb-1">Founder Address</div>

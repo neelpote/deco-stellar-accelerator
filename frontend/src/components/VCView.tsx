@@ -83,21 +83,39 @@ export const VCView = ({ publicKey: _publicKey }: VCViewProps) => {
                   <span className="text-3xl mr-3">🚀</span>
                   Project Information
                 </h3>
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">Project URL:</span>
+                <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Project Name</div>
+                    <div className="text-xl font-bold text-gray-800">{startupData.project_name}</div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Description</div>
+                    <p className="text-gray-800">{startupData.description}</p>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Project URL</div>
                     <a
-                      href={startupData.url_or_hash}
+                      href={startupData.project_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
                     >
-                      {startupData.url_or_hash}
+                      {startupData.project_url} →
                     </a>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <span className="text-gray-600 font-medium">Founder Address:</span>
-                    <p className="text-gray-800 font-mono text-sm mt-1 break-all bg-gray-50 p-3 rounded-lg">
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Team Information</div>
+                    <p className="text-gray-800">{startupData.team_info}</p>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Funding Goal</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {(Number(startupData.funding_goal) / 1e7).toFixed(2)} USDC
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Founder Address</div>
+                    <p className="text-gray-800 font-mono text-sm break-all bg-gray-50 p-3 rounded-lg">
                       {viewingAddress}
                     </p>
                   </div>

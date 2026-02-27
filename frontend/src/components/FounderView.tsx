@@ -11,16 +11,28 @@ interface FounderViewProps {
 }
 
 export const FounderView = ({ publicKey }: FounderViewProps) => {
+  const [projectName, setProjectName] = useState('');
+  const [description, setDescription] = useState('');
   const [projectUrl, setProjectUrl] = useState('');
+  const [teamInfo, setTeamInfo] = useState('');
+  const [fundingGoal, setFundingGoal] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [requestingVC, setRequestingVC] = useState(false);
   const queryClient = useQueryClient();
   const { data: startupData, isLoading } = useStartupStatus(publicKey);
 
   const applyMutation = useMutation({
-    mutationFn: async (url: string) => {
+    mutationFn: async (data: {
+      name: string;
+      desc: string;
+      url: string;
+      team: string;
+      goal: string;
+    }) => {
       const sourceAccount = await server.getAccount(publicKey);
       const contract = new StellarSdk.Contract(CONTRACT_ID);
+
+      const goalInStroops = Math.floor(parseFloat(data.goal) * 1e7).toString();
 
       const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
         fee: StellarSdk.BASE_FEE,
@@ -30,7 +42,11 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
           contract.call(
             'apply',
             StellarSdk.Address.fromString(publicKey).toScVal(),
-            StellarSdk.nativeToScVal(url, { type: 'string' })
+            StellarSdk.nativeToScVal(data.name, { type: 'string' }),
+            StellarSdk.nativeToScVal(data.desc, { type: 'string' }),
+            StellarSdk.nativeToScVal(data.url, { type: 'string' }),
+            StellarSdk.nativeToScVal(data.team, { type: 'string' }),
+            StellarSdk.nativeToScVal(goalInStroops, { type: 'i128' })
           )
         )
         .setTimeout(30)
@@ -63,7 +79,11 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['startupStatus'] });
+      setProjectName('');
+      setDescription('');
       setProjectUrl('');
+      setTeamInfo('');
+      setFundingGoal('');
       alert('🎉 Application submitted successfully!');
     },
     onError: (error) => {
@@ -187,11 +207,17 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectUrl.trim()) {
-      alert('Please enter a project URL');
+    if (!projectName.trim() || !description.trim() || !projectUrl.trim() || !teamInfo.trim() || !fundingGoal.trim()) {
+      alert('Please fill in all fields');
       return;
     }
-    applyMutation.mutate(projectUrl);
+    applyMutation.mutate({
+      name: projectName,
+      desc: description,
+      url: projectUrl,
+      team: teamInfo,
+      goal: fundingGoal,
+    });
   };
 
   const handleVCRequest = (e: React.FormEvent) => {
@@ -237,15 +263,44 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
               Apply to DeCo Accelerator
             </h3>
             <p className="text-gray-600 mb-6">
-              Submit your startup for funding consideration. Share your project details and get access to milestone-based funding.
+              Submit your startup for funding consideration. Provide detailed information about your project to help the community make informed voting decisions.
             </p>
-            <form onSubmit={handleApply}>
-              <div className="mb-6">
-                <label className="block text-gray-700 font-semibold mb-3 text-lg">
-                  Project URL
+            <form onSubmit={handleApply} className="space-y-6">
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-lg">
+                  Project Name *
                 </label>
-                <p className="text-sm text-gray-500 mb-3">
-                  Link to your GitHub repository, pitch deck, or project website
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  placeholder="e.g., DeFi Protocol, NFT Marketplace"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-lg">
+                  Project Description *
+                </label>
+                <p className="text-sm text-gray-500 mb-2">
+                  Describe your project, problem you're solving, and your solution
+                </p>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={5}
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg resize-none"
+                  placeholder="Tell us about your project, the problem you're solving, your unique value proposition, and why you should be funded..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-lg">
+                  Project URL *
+                </label>
+                <p className="text-sm text-gray-500 mb-2">
+                  Link to your GitHub, pitch deck, website, or demo
                 </p>
                 <input
                   type="text"
@@ -255,6 +310,40 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
                   placeholder="https://github.com/yourproject or https://yourproject.com"
                 />
               </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-lg">
+                  Team Information *
+                </label>
+                <p className="text-sm text-gray-500 mb-2">
+                  Tell us about your team, experience, and relevant background
+                </p>
+                <textarea
+                  value={teamInfo}
+                  onChange={(e) => setTeamInfo(e.target.value)}
+                  rows={4}
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg resize-none"
+                  placeholder="Founder names, roles, experience, previous projects, relevant skills..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2 text-lg">
+                  Funding Goal (USDC) *
+                </label>
+                <p className="text-sm text-gray-500 mb-2">
+                  How much funding are you requesting?
+                </p>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={fundingGoal}
+                  onChange={(e) => setFundingGoal(e.target.value)}
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  placeholder="10000.00"
+                />
+              </div>
+
               <button
                 type="submit"
                 disabled={applyMutation.isPending}
@@ -356,19 +445,37 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-8 border-2 border-green-100">
             <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
               <span className="text-3xl mr-3">✅</span>
-              Application Status: Approved
+              Application Status: {startupData.approved ? 'Approved' : 'Under Review'}
             </h3>
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 font-medium">Project URL:</span>
+            <div className="bg-white rounded-xl p-6 space-y-4">
+              <div>
+                <div className="text-sm text-gray-600 mb-1">Project Name</div>
+                <div className="text-xl font-bold text-gray-800">{startupData.project_name}</div>
+              </div>
+              <div className="pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Description</div>
+                <p className="text-gray-800">{startupData.description}</p>
+              </div>
+              <div className="pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Project URL</div>
                 <a
-                  href={startupData.url_or_hash}
+                  href={startupData.project_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
                 >
                   View Project →
                 </a>
+              </div>
+              <div className="pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Team</div>
+                <p className="text-gray-800">{startupData.team_info}</p>
+              </div>
+              <div className="pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Funding Goal</div>
+                <div className="text-xl font-bold text-green-600">
+                  {(Number(startupData.funding_goal) / 1e7).toFixed(2)} USDC
+                </div>
               </div>
             </div>
           </div>
