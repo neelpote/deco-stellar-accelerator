@@ -97,4 +97,97 @@ export const getAllStartups = async () => {
   }
 };
 
+export const getVCStakeRequired = async () => {
+  try {
+    const contract = new StellarSdk.Contract(CONTRACT_ID);
+    const dummyAccount = await server.getAccount('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+    
+    const transaction = new StellarSdk.TransactionBuilder(dummyAccount, {
+      fee: '100',
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(contract.call('get_vc_stake_required'))
+      .setTimeout(30)
+      .build();
+
+    const simulated = await server.simulateTransaction(transaction);
+    
+    if (StellarSdk.SorobanRpc.Api.isSimulationSuccess(simulated)) {
+      const result = simulated.result?.retval;
+      if (result) {
+        return StellarSdk.scValToNative(result);
+      }
+    }
+    
+    return '0';
+  } catch (error) {
+    console.error('Error fetching VC stake required:', error);
+    return '0';
+  }
+};
+
+export const getVCData = async (vcAddress: string) => {
+  try {
+    const contract = new StellarSdk.Contract(CONTRACT_ID);
+    const dummyAccount = await server.getAccount('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+    
+    const transaction = new StellarSdk.TransactionBuilder(dummyAccount, {
+      fee: '100',
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(
+        contract.call(
+          'get_vc_data',
+          StellarSdk.Address.fromString(vcAddress).toScVal()
+        )
+      )
+      .setTimeout(30)
+      .build();
+
+    const simulated = await server.simulateTransaction(transaction);
+    
+    if (StellarSdk.SorobanRpc.Api.isSimulationSuccess(simulated)) {
+      const result = simulated.result?.retval;
+      if (result) {
+        return StellarSdk.scValToNative(result);
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching VC data:', error);
+    return null;
+  }
+};
+
+export const getAllVCs = async () => {
+  try {
+    const contract = new StellarSdk.Contract(CONTRACT_ID);
+    const dummyAccount = await server.getAccount('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+    
+    const transaction = new StellarSdk.TransactionBuilder(dummyAccount, {
+      fee: '100',
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(contract.call('get_all_vcs'))
+      .setTimeout(30)
+      .build();
+
+    const simulated = await server.simulateTransaction(transaction);
+    
+    if (StellarSdk.SorobanRpc.Api.isSimulationSuccess(simulated)) {
+      const result = simulated.result?.retval;
+      if (result) {
+        const addresses = StellarSdk.scValToNative(result);
+        return addresses || [];
+      }
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching all VCs:', error);
+    return [];
+  }
+};
+
 export { server };

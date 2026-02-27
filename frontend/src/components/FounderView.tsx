@@ -16,8 +16,6 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
   const [projectUrl, setProjectUrl] = useState('');
   const [teamInfo, setTeamInfo] = useState('');
   const [fundingGoal, setFundingGoal] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [requestingVC, setRequestingVC] = useState(false);
   const queryClient = useQueryClient();
   const { data: startupData, isLoading } = useStartupStatus(publicKey);
 
@@ -92,61 +90,6 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
     },
   });
 
-  const vcRequestMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const sourceAccount = await server.getAccount(publicKey);
-      const contract = new StellarSdk.Contract(CONTRACT_ID);
-
-      const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
-        fee: StellarSdk.BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(
-          contract.call(
-            'request_vc',
-            StellarSdk.Address.fromString(publicKey).toScVal(),
-            StellarSdk.nativeToScVal(name, { type: 'string' })
-          )
-        )
-        .setTimeout(30)
-        .build();
-
-      const prepared = await server.prepareTransaction(transaction);
-      const xdr = prepared.toXDR();
-      const signedXdr = await signTransaction(xdr, {
-        networkPassphrase: NETWORK_PASSPHRASE,
-      });
-
-      const signedTx = StellarSdk.TransactionBuilder.fromXDR(
-        signedXdr,
-        NETWORK_PASSPHRASE
-      );
-
-      const result = await server.sendTransaction(signedTx);
-      
-      let status = await server.getTransaction(result.hash);
-      while (status.status === 'NOT_FOUND') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        status = await server.getTransaction(result.hash);
-      }
-
-      if (status.status === 'SUCCESS') {
-        return status;
-      } else {
-        throw new Error('Transaction failed');
-      }
-    },
-    onSuccess: () => {
-      setRequestingVC(false);
-      setCompanyName('');
-      alert('🎉 VC request submitted! Waiting for admin approval.');
-    },
-    onError: (error) => {
-      console.error('VC request error:', error);
-      alert('❌ Failed to submit VC request. Please try again.');
-    },
-  });
-
   const claimMutation = useMutation({
     mutationFn: async () => {
       const sourceAccount = await server.getAccount(publicKey);
@@ -218,15 +161,6 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
       team: teamInfo,
       goal: fundingGoal,
     });
-  };
-
-  const handleVCRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyName.trim()) {
-      alert('Please enter your company name');
-      return;
-    }
-    vcRequestMutation.mutate(companyName);
   };
 
   const handleClaim = () => {
@@ -362,56 +296,6 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
                 )}
               </button>
             </form>
-          </div>
-
-          {/* VC Request Section */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg p-8 border-2 border-purple-100">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              <span className="text-3xl mr-3">💼</span>
-              Become a Venture Capitalist
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Are you an investor? Request VC access to monitor and analyze startup portfolios on the platform.
-            </p>
-            {!requestingVC ? (
-              <button
-                onClick={() => setRequestingVC(true)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:from-purple-700 hover:to-pink-700 font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
-              >
-                💼 Request VC Access
-              </button>
-            ) : (
-              <form onSubmit={handleVCRequest}>
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-semibold mb-2">
-                    Company/Fund Name
-                  </label>
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-6 py-4 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Your VC firm or investment company name"
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    type="submit"
-                    disabled={vcRequestMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold"
-                  >
-                    {vcRequestMutation.isPending ? 'Submitting...' : 'Submit Request'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRequestingVC(false)}
-                    className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
           </div>
 
           {/* Info Cards */}

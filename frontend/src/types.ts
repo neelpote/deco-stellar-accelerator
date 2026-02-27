@@ -13,10 +13,11 @@ export interface StartupData {
   approved: boolean;
 }
 
-export interface VCRequest {
+export interface VCData {
   vc_address: string;
   company_name: string;
-  approved: boolean;
+  stake_amount: string;
+  total_invested: string;
 }
 
 export interface WalletState {
