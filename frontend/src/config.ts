@@ -4,7 +4,7 @@ export const HORIZON_URL = 'https://horizon-testnet.stellar.org';
 export const SOROBAN_RPC_URL = 'https://soroban-testnet.stellar.org';
 
 // Contract Configuration - Update after deployment
-export const CONTRACT_ID = 'CAWBITKHTDOEMA22C43IKMCFZGIZWY6QESQ7WYO3EMKTOJLDF3FO2SF2';
+export const CONTRACT_ID = 'CAKHYOFVLMGRO66VA2GQ6YG4FJZN3N4QGWMM342P3645RQZDKE6PAQUZ';
 
 // Testnet USDC Asset
 export const TESTNET_USDC_ASSET = {

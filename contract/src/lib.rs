@@ -9,10 +9,7 @@ mod test;
 #[derive(Clone)]
 #[contracttype]
 pub struct StartupData {
-    pub project_name: String,
-    pub description: String,
-    pub project_url: String,
-    pub team_info: String,
+    pub ipfs_cid: String,           // IPFS CID containing all metadata
     pub funding_goal: i128,
     pub total_allocated: i128,
     pub unlocked_balance: i128,
@@ -61,14 +58,11 @@ impl DeCoMVP {
         env.storage().instance().set(&DataKey::VCStakeRequired, &vc_stake_required);
     }
 
-    /// Founder applies by submitting project details
+    /// Founder applies by submitting IPFS CID containing project metadata
     pub fn apply(
         env: Env,
         founder: Address,
-        project_name: String,
-        description: String,
-        project_url: String,
-        team_info: String,
+        ipfs_cid: String,
         funding_goal: i128,
     ) {
         founder.require_auth();
@@ -83,10 +77,7 @@ impl DeCoMVP {
 
         // Create startup entry with voting enabled
         let startup_data = StartupData {
-            project_name,
-            description,
-            project_url,
-            team_info,
+            ipfs_cid,
             funding_goal,
             total_allocated: 0,
             unlocked_balance: 0,

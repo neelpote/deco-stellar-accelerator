@@ -5,6 +5,8 @@ import { signTransaction } from '@stellar/freighter-api';
 import { CONTRACT_ID, NETWORK_PASSPHRASE } from '../config';
 import { server } from '../stellar';
 import { useStartupStatus } from '../hooks/useStartupStatus';
+import { useIPFSMetadata } from '../hooks/useIPFSMetadata';
+import { uploadToIPFS } from '../ipfs';
 
 interface FounderViewProps {
   publicKey: string;
@@ -18,6 +20,7 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
   const [fundingGoal, setFundingGoal] = useState('');
   const queryClient = useQueryClient();
   const { data: startupData, isLoading } = useStartupStatus(publicKey);
+  const { data: metadata, isLoading: metadataLoading } = useIPFSMetadata(startupData?.ipfs_cid);
 
   const applyMutation = useMutation({
     mutationFn: async (data: {
@@ -27,6 +30,15 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
       team: string;
       goal: string;
     }) => {
+      // Step 1: Upload metadata to IPFS
+      const ipfsCid = await uploadToIPFS({
+        project_name: data.name,
+        description: data.desc,
+        project_url: data.url,
+        team_info: data.team,
+      });
+
+      // Step 2: Submit to blockchain with CID
       const sourceAccount = await server.getAccount(publicKey);
       const contract = new StellarSdk.Contract(CONTRACT_ID);
 
@@ -40,10 +52,7 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
           contract.call(
             'apply',
             StellarSdk.Address.fromString(publicKey).toScVal(),
-            StellarSdk.nativeToScVal(data.name, { type: 'string' }),
-            StellarSdk.nativeToScVal(data.desc, { type: 'string' }),
-            StellarSdk.nativeToScVal(data.url, { type: 'string' }),
-            StellarSdk.nativeToScVal(data.team, { type: 'string' }),
+            StellarSdk.nativeToScVal(ipfsCid, { type: 'string' }),
             StellarSdk.nativeToScVal(goalInStroops, { type: 'i128' })
           )
         )
@@ -82,11 +91,11 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
       setProjectUrl('');
       setTeamInfo('');
       setFundingGoal('');
-      alert('🎉 Application submitted successfully!');
+      alert('🎉 Application submitted successfully! Metadata stored on IPFS.');
     },
     onError: (error) => {
       console.error('Application error:', error);
-      alert('❌ Failed to submit application. Please try again.');
+      alert('❌ Failed to submit application. Please check your Pinata API keys in .env file.');
     },
   });
 
@@ -197,7 +206,7 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
               Apply to DeCo Accelerator
             </h3>
             <p className="text-gray-600 mb-6">
-              Submit your startup for funding consideration. Provide detailed information about your project to help the community make informed voting decisions.
+              Submit your startup for funding consideration. Your project details will be stored on IPFS for optimal on-chain efficiency.
             </p>
             <form onSubmit={handleApply} className="space-y-6">
               <div>
@@ -289,10 +298,10 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Submitting Application...
+                    Uploading to IPFS & Submitting...
                   </span>
                 ) : (
-                  '🚀 Submit Application'
+                  '🚀 Submit Application (IPFS + Blockchain)'
                 )}
               </button>
             </form>
@@ -331,37 +340,57 @@ export const FounderView = ({ publicKey }: FounderViewProps) => {
               <span className="text-3xl mr-3">✅</span>
               Application Status: {startupData.approved ? 'Approved' : 'Under Review'}
             </h3>
-            <div className="bg-white rounded-xl p-6 space-y-4">
-              <div>
-                <div className="text-sm text-gray-600 mb-1">Project Name</div>
-                <div className="text-xl font-bold text-gray-800">{startupData.project_name}</div>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Description</div>
-                <p className="text-gray-800">{startupData.description}</p>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Project URL</div>
-                <a
-                  href={startupData.project_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
-                >
-                  View Project →
-                </a>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Team</div>
-                <p className="text-gray-800">{startupData.team_info}</p>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Funding Goal</div>
-                <div className="text-xl font-bold text-green-600">
-                  {(Number(startupData.funding_goal) / 1e7).toFixed(2)} USDC
+            {metadataLoading ? (
+              <div className="bg-white rounded-xl p-6">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
                 </div>
               </div>
-            </div>
+            ) : metadata ? (
+              <div className="bg-white rounded-xl p-6 space-y-4">
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Project Name</div>
+                  <div className="text-xl font-bold text-gray-800">{metadata.project_name}</div>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 mb-1">Description</div>
+                  <p className="text-gray-800">{metadata.description}</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 mb-1">Project URL</div>
+                  <a
+                    href={metadata.project_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
+                  >
+                    View Project →
+                  </a>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 mb-1">Team</div>
+                  <p className="text-gray-800">{metadata.team_info}</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 mb-1">Funding Goal</div>
+                  <div className="text-xl font-bold text-green-600">
+                    {(Number(startupData.funding_goal) / 1e7).toFixed(2)} USDC
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 mb-1">IPFS CID</div>
+                  <p className="text-xs font-mono text-gray-600 break-all bg-gray-50 p-2 rounded">
+                    {startupData.ipfs_cid}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6">
+                <p className="text-gray-600">⚠️ Unable to load project metadata from IPFS</p>
+              </div>
+            )}
           </div>
 
           {/* Funding Cards */}
