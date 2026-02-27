@@ -6,7 +6,7 @@ interface VCViewProps {
   publicKey: string;
 }
 
-export const VCView = ({ publicKey }: VCViewProps) => {
+export const VCView = ({ publicKey: _publicKey }: VCViewProps) => {
   const [searchAddress, setSearchAddress] = useState('');
   const [viewingAddress, setViewingAddress] = useState<string | null>(null);
 
