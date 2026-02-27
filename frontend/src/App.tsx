@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useWallet } from './hooks/useWallet';
 import { useAdmin } from './hooks/useAdmin';
 import { useQuery } from '@tanstack/react-query';
 import { FounderView } from './components/FounderView';
 import { AdminView } from './components/AdminView';
 import { VCView } from './components/VCView';
+import { PublicVotingView } from './components/PublicVotingView';
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { CONTRACT_ID, NETWORK_PASSPHRASE } from './config';
 import { server } from './stellar';
@@ -18,9 +20,12 @@ const queryClient = new QueryClient({
   },
 });
 
+type ViewMode = 'founder' | 'vc' | 'voting' | 'admin';
+
 function AppContent() {
   const { wallet, connectWallet, disconnectWallet } = useWallet();
   const { data: adminAddress } = useAdmin();
+  const [viewMode, setViewMode] = useState<ViewMode>('founder');
 
   const { data: isVC } = useQuery({
     queryKey: ['isVC', wallet.publicKey],
@@ -65,13 +70,31 @@ function AppContent() {
 
   const isAdmin = wallet.publicKey && adminAddress && wallet.publicKey === adminAddress;
 
+  const renderView = () => {
+    if (!wallet.isConnected) return null;
+    
+    if (isAdmin && viewMode === 'admin') {
+      return <AdminView publicKey={wallet.publicKey!} />;
+    }
+    
+    switch (viewMode) {
+      case 'vc':
+        return isVC ? <VCView publicKey={wallet.publicKey!} /> : <FounderView publicKey={wallet.publicKey!} />;
+      case 'voting':
+        return <PublicVotingView publicKey={wallet.publicKey!} />;
+      case 'founder':
+      default:
+        return <FounderView publicKey={wallet.publicKey!} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-3">
                 <div className="text-4xl">🚀</div>
                 <div>
@@ -81,6 +104,56 @@ function AppContent() {
                   <p className="text-xs text-gray-600">Decentralized Combinator</p>
                 </div>
               </div>
+              
+              {/* Navigation Tabs */}
+              {wallet.isConnected && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setViewMode('founder')}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                      viewMode === 'founder'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    🚀 Founder
+                  </button>
+                  {isVC && (
+                    <button
+                      onClick={() => setViewMode('vc')}
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                        viewMode === 'vc'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      💼 VC
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setViewMode('voting')}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                      viewMode === 'voting'
+                        ? 'bg-green-100 text-green-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    🗳️ Vote
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setViewMode('admin')}
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                        viewMode === 'admin'
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      👑 Admin
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-4">
               {wallet.isConnected ? (
@@ -182,12 +255,8 @@ function AppContent() {
               </div>
             </div>
           </div>
-        ) : isAdmin ? (
-          <AdminView publicKey={wallet.publicKey!} />
-        ) : isVC ? (
-          <VCView publicKey={wallet.publicKey!} />
         ) : (
-          <FounderView publicKey={wallet.publicKey!} />
+          renderView()
         )}
       </main>
 

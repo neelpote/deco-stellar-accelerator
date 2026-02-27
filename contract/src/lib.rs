@@ -13,6 +13,10 @@ pub struct StartupData {
     pub total_allocated: i128,
     pub unlocked_balance: i128,
     pub claimed_balance: i128,
+    pub voting_end_time: u64,
+    pub yes_votes: u32,
+    pub no_votes: u32,
+    pub approved: bool,
 }
 
 #[derive(Clone)]
@@ -30,6 +34,7 @@ pub enum DataKey {
     Startup(Address),
     VCApproved(Address),
     VCRequest(Address),
+    Vote(Address, Address), // (voter_address, founder_address)
 }
 
 #[contract]
@@ -57,17 +62,94 @@ impl DeCoMVP {
             panic!("Already applied");
         }
 
-        // Create startup entry
+        // Set voting period to 7 days (in seconds)
+        let voting_end_time = env.ledger().timestamp() + (7 * 24 * 60 * 60);
+
+        // Create startup entry with voting enabled
         let startup_data = StartupData {
             url_or_hash: project_link,
             total_allocated: 0,
             unlocked_balance: 0,
             claimed_balance: 0,
+            voting_end_time,
+            yes_votes: 0,
+            no_votes: 0,
+            approved: false,
         };
 
         env.storage()
             .instance()
             .set(&DataKey::Startup(founder), &startup_data);
+    }
+
+    /// Public voting on startup applications
+    pub fn vote(env: Env, voter: Address, founder: Address, vote_yes: bool) {
+        voter.require_auth();
+
+        // Check if startup exists
+        let mut startup_data: StartupData = env
+            .storage()
+            .instance()
+            .get(&DataKey::Startup(founder.clone()))
+            .expect("Startup not found");
+
+        // Check if voting period is still active
+        if env.ledger().timestamp() > startup_data.voting_end_time {
+            panic!("Voting period has ended");
+        }
+
+        // Check if already voted
+        let vote_key = DataKey::Vote(voter.clone(), founder.clone());
+        if env.storage().instance().has(&vote_key) {
+            panic!("Already voted");
+        }
+
+        // Record vote
+        env.storage().instance().set(&vote_key, &vote_yes);
+
+        // Update vote counts
+        if vote_yes {
+            startup_data.yes_votes += 1;
+        } else {
+            startup_data.no_votes += 1;
+        }
+
+        env.storage()
+            .instance()
+            .set(&DataKey::Startup(founder), &startup_data);
+    }
+
+    /// Admin approves application after reviewing votes
+    pub fn approve_application(env: Env, admin: Address, founder: Address) {
+        admin.require_auth();
+
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Admin not set");
+        
+        if admin != stored_admin {
+            panic!("Unauthorized: not admin");
+        }
+
+        let mut startup_data: StartupData = env
+            .storage()
+            .instance()
+            .get(&DataKey::Startup(founder.clone()))
+            .expect("Startup not found");
+
+        startup_data.approved = true;
+
+        env.storage()
+            .instance()
+            .set(&DataKey::Startup(founder), &startup_data);
+    }
+
+    /// Check if voter has voted for a startup
+    pub fn has_voted(env: Env, voter: Address, founder: Address) -> bool {
+        let vote_key = DataKey::Vote(voter, founder);
+        env.storage().instance().has(&vote_key)
     }
 
     /// Admin allocates total USDC funding to a startup
