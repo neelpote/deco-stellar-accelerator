@@ -12,5 +12,5 @@ export const TESTNET_XLM_CONTRACT = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2R
 // Application fee in stroops (10 XLM = 100000000 stroops)
 export const APPLICATION_FEE_STROOPS = '100000000';
 
-// Version identifier for cache busting
-export const APP_VERSION = 'XLM_MIGRATION_v1.0.0';
+// Version identifier for cache busting - Force deployment
+export const APP_VERSION = 'XLM_MIGRATION_v1.0.1_DEPLOYED';
