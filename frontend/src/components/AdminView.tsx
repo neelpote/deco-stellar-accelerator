@@ -4,6 +4,7 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 import { signTransaction } from '@stellar/freighter-api';
 import { CONTRACT_ID, NETWORK_PASSPHRASE } from '../config';
 import { server, getStartupStatus } from '../stellar';
+import { verifyAdmin, EXPECTED_ADMIN } from '../adminTest';
 
 interface AdminViewProps {
   publicKey: string;
@@ -12,6 +13,19 @@ interface AdminViewProps {
 export const AdminView = ({ publicKey }: AdminViewProps) => {
   const [approveAddress, setApproveAddress] = useState('');
   const [reviewAddress, setReviewAddress] = useState('');
+  const [adminDebug, setAdminDebug] = useState<any>(null);
+
+  // Debug function to verify admin status
+  const checkAdminStatus = async () => {
+    const result = await verifyAdmin(publicKey);
+    setAdminDebug(result);
+    
+    if (!result.isAdmin) {
+      alert(`❌ Admin Verification Failed!\n\nYour wallet: ${publicKey}\nExpected admin: ${result.adminAddress || EXPECTED_ADMIN.address}\n\nPlease import the admin secret key: ${EXPECTED_ADMIN.secret}`);
+    } else {
+      alert('✅ Admin verification successful!');
+    }
+  };
 
   // Fetch startup details for review
   const { data: reviewData } = useQuery({
@@ -22,6 +36,34 @@ export const AdminView = ({ publicKey }: AdminViewProps) => {
 
   const approveApplicationMutation = useMutation({
     mutationFn: async (founder: string) => {
+      // Validate founder address format
+      if (!founder || founder.trim().length === 0) {
+        throw new Error('Founder address is required');
+      }
+      
+      try {
+        StellarSdk.StrKey.decodeEd25519PublicKey(founder);
+      } catch (error) {
+        throw new Error('Invalid Stellar address format');
+      }
+
+      // Validate admin address format
+      try {
+        StellarSdk.StrKey.decodeEd25519PublicKey(publicKey);
+      } catch (error) {
+        throw new Error('Invalid admin address format');
+      }
+
+      // First check if the startup exists
+      const startupStatus = await getStartupStatus(founder);
+      if (!startupStatus) {
+        throw new Error('Startup application not found. The founder must submit an application first.');
+      }
+
+      if (startupStatus.approved) {
+        throw new Error('This application has already been approved.');
+      }
+
       const sourceAccount = await server.getAccount(publicKey);
       const contract = new StellarSdk.Contract(CONTRACT_ID);
 
@@ -61,7 +103,7 @@ export const AdminView = ({ publicKey }: AdminViewProps) => {
       if (status.status === 'SUCCESS') {
         return status;
       } else {
-        throw new Error('Transaction failed');
+        throw new Error(`Transaction failed: ${status.status}`);
       }
     },
     onSuccess: () => {
@@ -70,7 +112,8 @@ export const AdminView = ({ publicKey }: AdminViewProps) => {
     },
     onError: (error: unknown) => {
       console.error('Approval error:', error);
-      alert('❌ Failed to approve application. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Failed to approve application: ${errorMessage}`);
     },
   });
 
@@ -84,189 +127,202 @@ export const AdminView = ({ publicKey }: AdminViewProps) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-xl p-8 mb-8 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-4xl font-bold mb-2">👑 Admin Dashboard</h2>
-            <p className="text-indigo-100 text-lg">
-              Manage funding allocations, approve milestones, and oversee the accelerator
-            </p>
-          </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
-            <div className="text-sm text-indigo-100">Your Role</div>
-            <div className="text-2xl font-bold">Administrator</div>
+      <div className="cyber-card p-8 mb-8 hover-glow">
+        <h2 className="text-4xl font-bold cyber-title mb-2 glitch" data-text="Admin Dashboard">👑 Admin Dashboard</h2>
+        <p className="text-cyber-text-dim text-lg">
+          Manage funding allocations, approve milestones, and oversee the accelerator
+        </p>
+        
+        {/* Admin Debug Section */}
+        <div className="mt-6 p-4 bg-cyber-surface/50 rounded-lg border border-cyber-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-cyber-text-dim">Connected as:</div>
+              <div className="text-sm font-mono text-cyber-primary">{publicKey}</div>
+              {adminDebug && (
+                <div className="text-xs text-cyber-text-dim mt-1">
+                  Expected admin: {adminDebug.adminAddress || EXPECTED_ADMIN.address}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={checkAdminStatus}
+              className="px-4 py-2 bg-cyber-warning/20 text-cyber-warning border border-cyber-warning rounded-lg hover:bg-cyber-warning/30 text-sm font-medium"
+            >
+              🔍 Verify Admin
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Review & Approve Application */}
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-8 border-2 border-green-100">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-            <span className="text-3xl mr-3">✅</span>
-            Review & Approve Application
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Review the application details and community votes before approving.
-          </p>
-          
-          {/* Review Section */}
-          <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-2">
-              Review Application
-            </label>
-            <p className="text-sm text-gray-500 mb-2">
-              Enter founder's address to view application details
-            </p>
-            <div className="flex gap-4">
-              <input
-                type="text"
-                value={reviewAddress}
-                onChange={(e) => setReviewAddress(e.target.value)}
-                className="flex-1 px-6 py-4 border-2 border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
-                placeholder="GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-              />
-              <button
-                type="button"
-                onClick={() => setReviewAddress('')}
-                className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold"
-              >
-                Clear
-              </button>
-            </div>
+      {/* Review & Approve Application */}
+      <div className="cyber-card p-8 hover-glow">
+        <div className="flex items-center mb-6">
+          <div className="w-12 h-12 bg-gradient-to-r from-cyber-accent to-cyber-primary rounded-xl flex items-center justify-center mr-4">
+            <span className="text-white text-xl">✅</span>
           </div>
-
-          {/* Application Details */}
-          {reviewData && (
-            <div className="bg-white rounded-xl p-6 mb-6 space-y-4">
-              <div>
-                <div className="text-sm text-gray-600 mb-1">Project Name</div>
-                <div className="text-xl font-bold text-gray-800">{reviewData.project_name}</div>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Description</div>
-                <p className="text-gray-800">{reviewData.description}</p>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Project URL</div>
-                <a
-                  href={reviewData.project_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
-                >
-                  {reviewData.project_url} →
-                </a>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Team</div>
-                <p className="text-gray-800">{reviewData.team_info}</p>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Funding Goal</div>
-                <div className="text-2xl font-bold text-green-600">
-                  {(Number(reviewData.funding_goal) / 1e7).toFixed(2)} USDC
-                </div>
-              </div>
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Community Votes</div>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <span>👍</span>
-                    <span className="text-lg font-bold text-green-600">{reviewData.yes_votes}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span>👎</span>
-                    <span className="text-lg font-bold text-red-600">{reviewData.no_votes}</span>
-                  </div>
-                  <div className="ml-auto text-sm text-gray-600">
-                    {reviewData.yes_votes + reviewData.no_votes > 0
-                      ? `${Math.round((reviewData.yes_votes / (reviewData.yes_votes + reviewData.no_votes)) * 100)}% approval`
-                      : 'No votes yet'}
-                  </div>
-                </div>
-              </div>
-              {reviewData.approved && (
-                <div className="pt-4 border-t border-gray-200">
-                  <span className="text-sm font-semibold text-green-600">✅ Already Approved</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Approve Form */}
-          <form onSubmit={handleApproveApplication}>
-            <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Approve Founder's Address
-              </label>
-              <p className="text-sm text-gray-500 mb-2">
-                Enter the address to approve (or use the reviewed address above)
-              </p>
-              <input
-                type="text"
-                value={approveAddress}
-                onChange={(e) => setApproveAddress(e.target.value)}
-                className="w-full px-6 py-4 border-2 border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
-                placeholder="GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-              />
-            </div>
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={approveApplicationMutation.isPending}
-                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
-              >
-                {approveApplicationMutation.isPending ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Approving...
-                  </span>
-                ) : (
-                  '✅ Approve Application'
-                )}
-              </button>
-              {reviewAddress && (
-                <button
-                  type="button"
-                  onClick={() => setApproveAddress(reviewAddress)}
-                  className="px-6 py-4 border-2 border-green-300 text-green-700 rounded-xl hover:bg-green-50 font-semibold"
-                >
-                  Use Reviewed Address
-                </button>
-              )}
-            </div>
-          </form>
+          <div>
+            <h3 className="text-2xl font-bold cyber-subtitle">Review & Approve Application</h3>
+            <p className="text-cyber-text-dim">Review the application details and community votes before approving</p>
+          </div>
+        </div>
+        
+        {/* Review Section */}
+        <div className="mb-6">
+          <label className="block cyber-subtitle font-medium mb-2">
+            Review Application
+          </label>
+          <p className="text-sm text-cyber-text-dim mb-2">
+            Enter founder's address to view application details
+          </p>
+          <div className="flex gap-4">
+            <input
+              type="text"
+              value={reviewAddress}
+              onChange={(e) => setReviewAddress(e.target.value)}
+              className="cyber-input flex-1 font-mono text-sm"
+              placeholder="GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            />
+            <button
+              type="button"
+              onClick={() => setReviewAddress('')}
+              className="px-6 py-3 border border-cyber-border text-cyber-text-dim rounded-lg hover:bg-cyber-surface font-medium"
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-lg p-6 border-2 border-blue-100">
-            <span className="text-4xl mb-3 block">🗳️</span>
-            <h4 className="text-lg font-bold text-gray-800 mb-2">Community Driven</h4>
-            <p className="text-gray-600 text-sm">
-              Approve applications based on community votes and project quality
-            </p>
+        {/* Application Details */}
+        {reviewData && (
+          <div className="cyber-card p-6 mb-6 space-y-4">
+            <div>
+              <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Project Name</div>
+              <div className="text-xl font-bold text-cyber-primary">{reviewData.project_name}</div>
+            </div>
+            <div className="pt-4 border-t border-cyber-border">
+              <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Description</div>
+              <p className="text-cyber-text">{reviewData.description}</p>
+            </div>
+            <div className="pt-4 border-t border-cyber-border">
+              <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Project URL</div>
+              <a
+                href={reviewData.project_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cyber-primary hover:text-cyber-secondary font-semibold hover:underline neon-blue"
+              >
+                {reviewData.project_url} →
+              </a>
+            </div>
+            <div className="pt-4 border-t border-cyber-border">
+              <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Team</div>
+              <p className="text-cyber-text">{reviewData.team_info}</p>
+            </div>
+            <div className="pt-4 border-t border-cyber-border">
+              <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Funding Goal</div>
+              <div className="text-2xl font-bold neon-green">
+                {(Number(reviewData.funding_goal) / 1e7).toFixed(2)} XLM
+              </div>
+            </div>
+            <div className="pt-4 border-t border-cyber-border">
+              <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Community Votes</div>
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="neon-green">👍</span>
+                  <span className="text-lg font-bold neon-green">{Number(reviewData.yes_votes)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="neon-pink">👎</span>
+                  <span className="text-lg font-bold neon-pink">{Number(reviewData.no_votes)}</span>
+                </div>
+                <div className="ml-auto text-sm text-cyber-text-dim">
+                  {Number(reviewData.yes_votes) + Number(reviewData.no_votes) > 0
+                    ? `${Math.round((Number(reviewData.yes_votes) / (Number(reviewData.yes_votes) + Number(reviewData.no_votes))) * 100)}% approval`
+                    : 'No votes yet'}
+                </div>
+              </div>
+            </div>
+            {reviewData.approved && (
+              <div className="pt-4 border-t border-cyber-border">
+                <span className="text-sm font-semibold neon-green">✅ Already Approved</span>
+              </div>
+            )}
           </div>
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-100">
-            <span className="text-4xl mb-3 block">🔐</span>
-            <h4 className="text-lg font-bold text-gray-800 mb-2">Decentralized Funding</h4>
-            <p className="text-gray-600 text-sm">
-              VCs invest directly - no admin control over funding
+        )}
+
+        {/* Approve Form */}
+        <form onSubmit={handleApproveApplication} className="space-y-6">
+          <div>
+            <label className="block cyber-subtitle font-medium mb-2">
+              Approve Founder's Address
+            </label>
+            <p className="text-sm text-cyber-text-dim mb-2">
+              Enter the address to approve (or use the reviewed address above)
             </p>
+            <input
+              type="text"
+              value={approveAddress}
+              onChange={(e) => setApproveAddress(e.target.value)}
+              className="cyber-input w-full font-mono text-sm"
+              placeholder="GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            />
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg p-6 border-2 border-purple-100">
-            <span className="text-4xl mb-3 block">📊</span>
-            <h4 className="text-lg font-bold text-gray-800 mb-2">Transparent Process</h4>
-            <p className="text-gray-600 text-sm">
-              All approvals are recorded on the blockchain
-            </p>
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              disabled={approveApplicationMutation.isPending}
+              className="cyber-btn flex-1 px-8 py-4 text-lg font-bold hover-lift"
+            >
+              {approveApplicationMutation.isPending ? (
+                <span className="flex items-center justify-center space-x-2">
+                  <div className="cyber-loading"></div>
+                  <span>Approving...</span>
+                </span>
+              ) : (
+                <span className="flex items-center justify-center space-x-2">
+                  <span>✅</span>
+                  <span>Approve Application</span>
+                </span>
+              )}
+            </button>
+            {reviewAddress && (
+              <button
+                type="button"
+                onClick={() => setApproveAddress(reviewAddress)}
+                className="px-6 py-4 border border-cyber-primary/50 text-cyber-primary rounded-lg hover:bg-cyber-primary/20 font-medium"
+              >
+                Use Reviewed Address
+              </button>
+            )}
           </div>
+        </form>
+      </div>
+
+      {/* Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="cyber-card p-6 hover-glow hover-lift">
+          <div className="text-4xl mb-3 neon-green">🗳️</div>
+          <h4 className="text-lg font-bold cyber-subtitle mb-2">Community Driven</h4>
+          <p className="text-cyber-text-dim text-sm">
+            Approve applications based on community votes and project quality
+          </p>
+        </div>
+        <div className="cyber-card p-6 hover-glow hover-lift">
+          <div className="text-4xl mb-3 neon-blue">🔐</div>
+          <h4 className="text-lg font-bold cyber-subtitle mb-2">Decentralized Funding</h4>
+          <p className="text-cyber-text-dim text-sm">
+            VCs invest directly - no admin control over funding
+          </p>
+        </div>
+        <div className="cyber-card p-6 hover-glow hover-lift">
+          <div className="text-4xl mb-3 neon-pink">📊</div>
+          <h4 className="text-lg font-bold cyber-subtitle mb-2">Transparent Process</h4>
+          <p className="text-cyber-text-dim text-sm">
+            All approvals are recorded on the blockchain
+          </p>
         </div>
       </div>
     </div>

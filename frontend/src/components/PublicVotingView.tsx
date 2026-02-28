@@ -7,6 +7,28 @@ import { server, getStartupStatus, getAllStartups } from '../stellar';
 import { useIPFSMetadata } from '../hooks/useIPFSMetadata';
 import { StartupCard } from './StartupCard';
 
+// Component to handle individual startup card data fetching
+const StartupCardWithData = ({ address, index, onClick }: { 
+  address: string; 
+  index: number; 
+  onClick: () => void; 
+}) => {
+  const { data: startupData } = useQuery({
+    queryKey: ['startupCard', address],
+    queryFn: () => getStartupStatus(address),
+    staleTime: 10000,
+  });
+  
+  return (
+    <StartupCard
+      key={address}
+      index={index + 1}
+      startupData={startupData || null}
+      onClick={onClick}
+    />
+  );
+};
+
 interface PublicVotingViewProps {
   publicKey: string;
 }
@@ -88,7 +110,7 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
             'vote',
             StellarSdk.Address.fromString(publicKey).toScVal(),
             StellarSdk.Address.fromString(founder).toScVal(),
-            StellarSdk.nativeToScVal(voteYes, { type: 'bool' })
+            StellarSdk.xdr.ScVal.scvBool(voteYes)
           )
         )
         .setTimeout(30)
@@ -142,9 +164,11 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
     voteMutation.mutate({ founder: viewingAddress, voteYes });
   };
 
-  const getTimeRemaining = (endTime: number) => {
+  const getTimeRemaining = (endTime: number | bigint) => {
     const now = Math.floor(Date.now() / 1000);
-    const remaining = endTime - now;
+    // Convert BigInt to number for calculations
+    const endTimeNum = typeof endTime === 'bigint' ? Number(endTime) : endTime;
+    const remaining = endTimeNum - now;
     
     if (remaining <= 0) return 'Voting ended';
     
@@ -157,80 +181,70 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
     return `${minutes}m remaining`;
   };
 
-  const isVotingActive = (endTime: number) => {
+  const isVotingActive = (endTime: number | bigint) => {
     const now = Math.floor(Date.now() / 1000);
-    return now < endTime;
+    // Convert BigInt to number for comparison
+    const endTimeNum = typeof endTime === 'bigint' ? Number(endTime) : endTime;
+    return now < endTimeNum;
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-2xl shadow-xl p-8 mb-8 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-4xl font-bold mb-2">🗳️ Public DAO Voting</h2>
-            <p className="text-green-100 text-lg">
-              Vote on startup applications and help shape the future of DeCo
-            </p>
-          </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
-            <div className="text-sm text-green-100">Your Power</div>
-            <div className="text-2xl font-bold">1 Vote</div>
-          </div>
-        </div>
+      <div className="cyber-card p-8 mb-8 hover-glow">
+        <h2 className="text-4xl font-bold cyber-title mb-2 glitch" data-text="Public DAO Voting">🗳️ Public DAO Voting</h2>
+        <p className="text-cyber-text-dim text-lg">
+          Vote on startup applications and help shape the future of DeCo
+        </p>
       </div>
 
       {/* All Applications List */}
       {allStartups.length > 0 && !viewingAddress && (
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-            <span className="text-3xl mr-3">📋</span>
-            All Applications ({allStartups.length})
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Browse all startup applications and click to view details and vote
-          </p>
+        <div className="cyber-card p-8 hover-glow">
+          <div className="flex items-center mb-6">
+            <div className="w-12 h-12 bg-gradient-to-r from-cyber-accent to-cyber-primary rounded-xl flex items-center justify-center mr-4">
+              <span className="text-white text-xl">📋</span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold cyber-subtitle">All Applications ({allStartups.length})</h3>
+              <p className="text-cyber-text-dim">Browse all startup applications and click to view details and vote</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {allStartups.map((address: string, index: number) => {
-              const { data: startupData } = useQuery({
-                queryKey: ['startupCard', address],
-                queryFn: () => getStartupStatus(address),
-                staleTime: 10000,
-              });
-              
-              return (
-                <StartupCard
-                  key={address}
-                  index={index + 1}
-                  startupData={startupData || null}
-                  onClick={() => setViewingAddress(address)}
-                />
-              );
-            })}
+            {allStartups.map((address: string, index: number) => (
+              <StartupCardWithData
+                key={address}
+                address={address}
+                index={index}
+                onClick={() => setViewingAddress(address)}
+              />
+            ))}
           </div>
         </div>
       )}
 
       {/* Search Section */}
-      <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-        <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="text-3xl mr-3">🔍</span>
-          Find Startup to Vote On
-        </h3>
-        <p className="text-gray-600 mb-6">
-          Enter a founder's Stellar address to view their application and cast your vote
-        </p>
+      <div className="cyber-card p-8 hover-glow">
+        <div className="flex items-center mb-6">
+          <div className="w-12 h-12 bg-gradient-to-r from-cyber-primary to-cyber-secondary rounded-xl flex items-center justify-center mr-4">
+            <span className="text-white text-xl">🔍</span>
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold cyber-subtitle">Find Startup to Vote On</h3>
+            <p className="text-cyber-text-dim">Enter a founder's Stellar address to view their application and cast your vote</p>
+          </div>
+        </div>
         <form onSubmit={handleSearch} className="flex gap-4">
           <input
             type="text"
             value={searchAddress}
             onChange={(e) => setSearchAddress(e.target.value)}
-            className="flex-1 px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
+            className="cyber-input flex-1 font-mono"
             placeholder="GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
           />
           <button
             type="submit"
-            className="bg-gradient-to-r from-green-600 to-teal-600 text-white px-8 py-4 rounded-xl hover:from-green-700 hover:to-teal-700 font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+            className="cyber-btn px-8 py-3"
           >
             Search
           </button>
@@ -241,153 +255,160 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
       {viewingAddress && (
         <div className="space-y-6">
           {isLoading ? (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 text-lg">Loading application...</p>
+            <div className="cyber-card p-12 text-center hover-glow">
+              <div className="cyber-loading w-16 h-16 mx-auto mb-4"></div>
+              <p className="text-cyber-text-dim text-lg">Loading application...</p>
             </div>
           ) : startupData ? (
             <>
               {/* Application Card */}
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-lg p-8 border-2 border-blue-100">
+              <div className="cyber-card p-8 hover-glow">
                 <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2 flex items-center">
-                      <span className="text-3xl mr-3">🚀</span>
-                      Startup Application
-                    </h3>
-                    <p className="text-gray-600">Review the details and cast your vote</p>
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-gradient-to-r from-cyber-accent to-cyber-primary rounded-xl flex items-center justify-center mr-4">
+                      <span className="text-white text-xl">🚀</span>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold cyber-subtitle">Startup Application</h3>
+                      <p className="text-cyber-text-dim">Review the details and cast your vote</p>
+                    </div>
                   </div>
-                  <div className={`px-4 py-2 rounded-full font-bold text-sm ${
+                  <div className={`px-4 py-2 rounded-full font-bold text-sm uppercase tracking-wider ${
                     isVotingActive(startupData.voting_end_time)
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-cyber-accent/20 text-cyber-accent border border-cyber-accent'
+                      : 'bg-cyber-secondary/20 text-cyber-secondary border border-cyber-secondary'
                   }`}>
                     {isVotingActive(startupData.voting_end_time) ? '🟢 VOTING OPEN' : '🔴 VOTING CLOSED'}
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 space-y-4">
+                <div className="cyber-card p-6 space-y-4">
                   {metadataLoading ? (
                     <div className="animate-pulse space-y-4">
-                      <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-full"></div>
-                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                      <div className="h-6 bg-cyber-surface rounded w-3/4"></div>
+                      <div className="h-4 bg-cyber-surface rounded w-full"></div>
+                      <div className="h-4 bg-cyber-surface rounded w-2/3"></div>
                     </div>
                   ) : metadata ? (
                     <>
                       <div>
-                        <div className="text-sm text-gray-600 mb-1">Project Name</div>
-                        <div className="text-xl font-bold text-gray-800">{metadata.project_name}</div>
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Project Name</div>
+                        <div className="text-xl font-bold text-cyber-primary">{metadata.project_name}</div>
                       </div>
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Description</div>
-                        <p className="text-gray-800">{metadata.description}</p>
+                      <div className="pt-4 border-t border-cyber-border">
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Description</div>
+                        <p className="text-cyber-text">{metadata.description}</p>
                       </div>
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Project URL</div>
+                      <div className="pt-4 border-t border-cyber-border">
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Project URL</div>
                         <a
                           href={metadata.project_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 font-semibold hover:underline text-lg"
+                          className="text-cyber-primary hover:text-cyber-secondary font-semibold hover:underline text-lg neon-blue"
                         >
                           {metadata.project_url}
                         </a>
                       </div>
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Team Information</div>
-                        <p className="text-gray-800">{metadata.team_info}</p>
+                      <div className="pt-4 border-t border-cyber-border">
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Team Information</div>
+                        <p className="text-cyber-text">{metadata.team_info}</p>
                       </div>
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Funding Goal</div>
-                        <div className="text-2xl font-bold text-green-600">
-                          {(Number(startupData.funding_goal) / 1e7).toFixed(2)} USDC
+                      <div className="pt-4 border-t border-cyber-border">
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Funding Goal</div>
+                        <div className="text-2xl font-bold neon-green">
+                          {(Number(startupData.funding_goal) / 1e7).toFixed(2)} XLM
                         </div>
                       </div>
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Founder Address</div>
-                        <p className="text-gray-800 font-mono text-sm break-all bg-gray-50 p-3 rounded-lg">
+                      <div className="pt-4 border-t border-cyber-border">
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Founder Address</div>
+                        <p className="text-cyber-text font-mono text-sm break-all bg-cyber-surface p-3 rounded-lg">
                           {viewingAddress}
                         </p>
                       </div>
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Voting Period</div>
-                        <p className="text-lg font-semibold text-gray-800">
+                      <div className="pt-4 border-t border-cyber-border">
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">Voting Period</div>
+                        <p className="text-lg font-semibold text-cyber-text">
                           {getTimeRemaining(startupData.voting_end_time)}
                         </p>
                       </div>
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">IPFS CID</div>
-                        <p className="text-xs font-mono text-gray-600 break-all bg-gray-50 p-2 rounded">
+                      <div className="pt-4 border-t border-cyber-border">
+                        <div className="text-sm text-cyber-text-dim mb-1 cyber-subtitle">IPFS CID</div>
+                        <p className="text-xs font-mono text-cyber-text-dim break-all bg-cyber-surface p-2 rounded">
                           {startupData.ipfs_cid}
                         </p>
                       </div>
                     </>
                   ) : (
-                    <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6">
-                      <p className="text-gray-600">⚠️ Unable to load project metadata from IPFS</p>
+                    <div className="bg-cyber-warning/20 border border-cyber-warning/50 rounded-xl p-6">
+                      <p className="text-cyber-warning">⚠️ Unable to load project metadata from IPFS</p>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Vote Results */}
-              <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                  <span className="text-3xl mr-3">📊</span>
-                  Current Vote Results
-                </h3>
+              <div className="cyber-card p-8 hover-glow">
+                <div className="flex items-center mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-r from-cyber-primary to-cyber-secondary rounded-xl flex items-center justify-center mr-4">
+                    <span className="text-white text-xl">📊</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold cyber-subtitle">Current Vote Results</h3>
+                    <p className="text-cyber-text-dim">Community sentiment on this application</p>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-6 mb-8">
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-100">
+                  <div className="cyber-card p-6 bg-gradient-to-br from-cyber-accent/10 to-cyber-primary/10 border-cyber-accent hover-glow">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-4xl">👍</span>
-                      <span className="text-3xl font-bold text-green-600">{startupData.yes_votes}</span>
+                      <span className="text-4xl neon-green">👍</span>
+                      <span className="text-3xl font-bold neon-green">{Number(startupData.yes_votes)}</span>
                     </div>
-                    <div className="text-gray-700 font-semibold">Yes Votes</div>
-                    <div className="text-sm text-gray-500">Support this application</div>
+                    <div className="cyber-subtitle font-semibold">Yes Votes</div>
+                    <div className="text-sm text-cyber-text-dim">Support this application</div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-6 border-2 border-red-100">
+                  <div className="cyber-card p-6 bg-gradient-to-br from-cyber-secondary/10 to-cyber-warning/10 border-cyber-secondary hover-glow">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-4xl">👎</span>
-                      <span className="text-3xl font-bold text-red-600">{startupData.no_votes}</span>
+                      <span className="text-4xl neon-pink">👎</span>
+                      <span className="text-3xl font-bold neon-pink">{Number(startupData.no_votes)}</span>
                     </div>
-                    <div className="text-gray-700 font-semibold">No Votes</div>
-                    <div className="text-sm text-gray-500">Reject this application</div>
+                    <div className="cyber-subtitle font-semibold">No Votes</div>
+                    <div className="text-sm text-cyber-text-dim">Reject this application</div>
                   </div>
                 </div>
 
                 {/* Vote Progress Bar */}
                 <div className="mb-8">
-                  <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>Community Sentiment</span>
+                  <div className="flex justify-between text-sm text-cyber-text-dim mb-2">
+                    <span className="cyber-subtitle">Community Sentiment</span>
                     <span className="font-semibold">
-                      {startupData.yes_votes + startupData.no_votes > 0
-                        ? `${Math.round((startupData.yes_votes / (startupData.yes_votes + startupData.no_votes)) * 100)}% Yes`
+                      {Number(startupData.yes_votes) + Number(startupData.no_votes) > 0
+                        ? `${Math.round((Number(startupData.yes_votes) / (Number(startupData.yes_votes) + Number(startupData.no_votes))) * 100)}% Yes`
                         : 'No votes yet'}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden flex">
+                  <div className="cyber-progress h-6 flex">
                     <div
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold"
+                      className="cyber-progress-bar flex items-center justify-center text-white text-xs font-bold"
                       style={{
-                        width: `${startupData.yes_votes + startupData.no_votes > 0
-                          ? (startupData.yes_votes / (startupData.yes_votes + startupData.no_votes)) * 100
+                        width: `${Number(startupData.yes_votes) + Number(startupData.no_votes) > 0
+                          ? (Number(startupData.yes_votes) / (Number(startupData.yes_votes) + Number(startupData.no_votes))) * 100
                           : 50}%`
                       }}
                     >
-                      {startupData.yes_votes > 0 && startupData.yes_votes}
+                      {Number(startupData.yes_votes) > 0 && Number(startupData.yes_votes)}
                     </div>
                     <div
-                      className="bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold"
+                      className="bg-gradient-to-r from-cyber-secondary to-cyber-warning flex items-center justify-center text-white text-xs font-bold rounded-r-lg"
                       style={{
-                        width: `${startupData.yes_votes + startupData.no_votes > 0
-                          ? (startupData.no_votes / (startupData.yes_votes + startupData.no_votes)) * 100
+                        width: `${Number(startupData.yes_votes) + Number(startupData.no_votes) > 0
+                          ? (Number(startupData.no_votes) / (Number(startupData.yes_votes) + Number(startupData.no_votes))) * 100
                           : 50}%`
                       }}
                     >
-                      {startupData.no_votes > 0 && startupData.no_votes}
+                      {Number(startupData.no_votes) > 0 && Number(startupData.no_votes)}
                     </div>
                   </div>
                 </div>
@@ -395,82 +416,76 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
                 {/* Voting Buttons */}
                 {isVotingActive(startupData.voting_end_time) ? (
                   hasVoted ? (
-                    <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 text-center">
-                      <span className="text-4xl mb-3 block">✅</span>
-                      <h4 className="text-xl font-bold text-gray-800 mb-2">You've Already Voted</h4>
-                      <p className="text-gray-600">Thank you for participating in the DAO!</p>
+                    <div className="cyber-card p-6 text-center bg-gradient-to-br from-cyber-primary/10 to-cyber-secondary/10 border-cyber-primary">
+                      <span className="text-4xl mb-3 block neon-blue">✅</span>
+                      <h4 className="text-xl font-bold cyber-subtitle mb-2">You've Already Voted</h4>
+                      <p className="text-cyber-text-dim">Thank you for participating in the DAO!</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => handleVote(true)}
                         disabled={voteMutation.isPending}
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-6 rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+                        className="cyber-btn px-8 py-6 text-lg font-medium flex flex-col items-center justify-center space-y-2 hover-lift"
                       >
                         {voteMutation.isPending ? (
-                          <span className="flex items-center justify-center">
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Voting...
-                          </span>
+                          <>
+                            <div className="cyber-loading"></div>
+                            <span>Voting...</span>
+                          </>
                         ) : (
                           <>
-                            <span className="text-3xl block mb-2">👍</span>
-                            Vote YES
+                            <span className="text-3xl neon-green">👍</span>
+                            <span>Vote YES</span>
                           </>
                         )}
                       </button>
                       <button
                         onClick={() => handleVote(false)}
                         disabled={voteMutation.isPending}
-                        className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-6 rounded-xl hover:from-red-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+                        className="bg-gradient-to-r from-cyber-secondary to-cyber-warning hover:from-cyber-secondary/80 hover:to-cyber-warning/80 disabled:bg-gray-500 text-white px-8 py-6 rounded-xl font-medium text-lg transition-all flex flex-col items-center justify-center space-y-2 hover-lift"
                       >
                         {voteMutation.isPending ? (
-                          <span className="flex items-center justify-center">
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Voting...
-                          </span>
+                          <>
+                            <div className="cyber-loading"></div>
+                            <span>Voting...</span>
+                          </>
                         ) : (
                           <>
-                            <span className="text-3xl block mb-2">👎</span>
-                            Vote NO
+                            <span className="text-3xl neon-pink">👎</span>
+                            <span>Vote NO</span>
                           </>
                         )}
                       </button>
                     </div>
                   )
                 ) : (
-                  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center">
-                    <span className="text-4xl mb-3 block">⏰</span>
-                    <h4 className="text-xl font-bold text-gray-800 mb-2">Voting Period Ended</h4>
-                    <p className="text-gray-600">The admin will review the results and make a decision</p>
+                  <div className="cyber-card p-6 text-center bg-gradient-to-br from-cyber-secondary/10 to-cyber-warning/10 border-cyber-secondary">
+                    <span className="text-4xl mb-3 block neon-pink">⏰</span>
+                    <h4 className="text-xl font-bold cyber-subtitle mb-2">Voting Period Ended</h4>
+                    <p className="text-cyber-text-dim">The admin will review the results and make a decision</p>
                   </div>
                 )}
               </div>
 
               {/* Admin Status */}
               {startupData.approved && (
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-200">
+                <div className="cyber-card p-6 bg-gradient-to-br from-cyber-accent/10 to-cyber-primary/10 border-cyber-accent">
                   <div className="flex items-center">
-                    <span className="text-4xl mr-4">✅</span>
+                    <span className="text-4xl mr-4 neon-green">✅</span>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-800">Application Approved</h4>
-                      <p className="text-gray-600">This startup has been approved by the admin for funding</p>
+                      <h4 className="text-xl font-bold cyber-subtitle">Application Approved</h4>
+                      <p className="text-cyber-text-dim">This startup has been approved by the admin for funding</p>
                     </div>
                   </div>
                 </div>
               )}
             </>
           ) : (
-            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl shadow-lg p-12 text-center">
-              <span className="text-6xl mb-4 block">⚠️</span>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">No Application Found</h3>
-              <p className="text-gray-600">
+            <div className="cyber-card p-12 text-center bg-gradient-to-br from-cyber-warning/10 to-cyber-secondary/10 border-cyber-warning">
+              <span className="text-6xl mb-4 block neon-pink">⚠️</span>
+              <h3 className="text-2xl font-bold cyber-subtitle mb-2">No Application Found</h3>
+              <p className="text-cyber-text-dim">
                 This address hasn't submitted an application yet or the address is invalid.
               </p>
             </div>
@@ -480,26 +495,37 @@ export const PublicVotingView = ({ publicKey }: PublicVotingViewProps) => {
 
       {/* Info Cards */}
       {!viewingAddress && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-100">
-            <span className="text-4xl mb-3 block">🗳️</span>
-            <h4 className="text-lg font-bold text-gray-800 mb-2">Democratic Voting</h4>
-            <p className="text-gray-600 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="cyber-card p-6 hover-glow hover-lift">
+            <div className="text-4xl mb-3 neon-green">🗳️</div>
+            <h4 className="text-lg font-bold cyber-subtitle mb-2">Democratic Voting</h4>
+            <p className="text-cyber-text-dim text-sm">
               Every wallet gets one vote to support or reject startup applications
             </p>
           </div>
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-lg p-6 border-2 border-blue-100">
-            <span className="text-4xl mb-3 block">⏰</span>
-            <h4 className="text-lg font-bold text-gray-800 mb-2">7-Day Voting Period</h4>
-            <p className="text-gray-600 text-sm">
+          <div className="cyber-card p-6 hover-glow hover-lift">
+            <div className="text-4xl mb-3 neon-blue">⏰</div>
+            <h4 className="text-lg font-bold cyber-subtitle mb-2">7-Day Voting Period</h4>
+            <p className="text-cyber-text-dim text-sm">
               Each application has a 7-day voting window for community input
             </p>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg p-6 border-2 border-purple-100">
-            <span className="text-4xl mb-3 block">🔐</span>
-            <h4 className="text-lg font-bold text-gray-800 mb-2">On-Chain Transparency</h4>
-            <p className="text-gray-600 text-sm">
+          <div className="cyber-card p-6 hover-glow hover-lift">
+            <div className="text-4xl mb-3 neon-pink">🔐</div>
+            <h4 className="text-lg font-bold cyber-subtitle mb-2">On-Chain Transparency</h4>
+            <p className="text-cyber-text-dim text-sm">
               All votes are recorded on the blockchain for complete transparency
+            </p>
+          </div>
+          <div className="cyber-card p-6 hover-glow hover-lift cursor-pointer bg-gradient-to-br from-cyber-secondary/10 to-cyber-primary/10 border-cyber-secondary" 
+               onClick={() => {
+                 const event = new CustomEvent('navigate-to-vc');
+                 window.dispatchEvent(event);
+               }}>
+            <div className="text-4xl mb-3 neon-secondary">💼</div>
+            <h4 className="text-lg font-bold cyber-subtitle mb-2">Become a VC</h4>
+            <p className="text-cyber-text-dim text-sm">
+              Stake tokens and invest in approved startups →
             </p>
           </div>
         </div>

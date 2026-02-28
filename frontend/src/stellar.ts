@@ -5,6 +5,17 @@ const server = new StellarSdk.SorobanRpc.Server(SOROBAN_RPC_URL);
 
 export const getStartupStatus = async (founderAddress: string) => {
   try {
+    // Validate the address format first
+    if (!founderAddress) {
+      throw new Error('Founder address is required');
+    }
+    
+    try {
+      StellarSdk.StrKey.decodeEd25519PublicKey(founderAddress);
+    } catch (error) {
+      throw new Error('Invalid Stellar address format');
+    }
+
     const contract = new StellarSdk.Contract(CONTRACT_ID);
     const sourceAccount = await server.getAccount(founderAddress);
     

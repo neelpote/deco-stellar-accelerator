@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWallet } from './hooks/useWallet';
 import { useAdmin } from './hooks/useAdmin';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { FounderView } from './components/FounderView';
 import { AdminView } from './components/AdminView';
 import { VCView } from './components/VCView';
 import { PublicVotingView } from './components/PublicVotingView';
+import { CyberBackground } from './components/CyberBackground';
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { CONTRACT_ID, NETWORK_PASSPHRASE } from './config';
 import { server } from './stellar';
@@ -24,8 +25,15 @@ type ViewMode = 'founder' | 'vc' | 'voting' | 'admin';
 
 function AppContent() {
   const { wallet, connectWallet, disconnectWallet } = useWallet();
-  const { data: adminAddress } = useAdmin();
+  const { data: adminAddress, isLoading: adminLoading } = useAdmin();
   const [viewMode, setViewMode] = useState<ViewMode>('founder');
+
+  // Listen for navigation events
+  useEffect(() => {
+    const handleNavigateToVC = () => setViewMode('vc');
+    window.addEventListener('navigate-to-vc', handleNavigateToVC);
+    return () => window.removeEventListener('navigate-to-vc', handleNavigateToVC);
+  }, []);
 
   const { data: isVC } = useQuery({
     queryKey: ['isVC', wallet.publicKey],
@@ -68,52 +76,61 @@ function AppContent() {
     refetchInterval: 30000,
   });
 
-  const isAdmin = wallet.publicKey && adminAddress && wallet.publicKey === adminAddress;
+  const isAdmin = wallet.publicKey && adminAddress && !adminLoading && wallet.publicKey === adminAddress;
 
   const renderView = () => {
-    if (!wallet.isConnected) return null;
+    if (!wallet.isConnected || !wallet.publicKey) return null;
     
-    if (isAdmin && viewMode === 'admin') {
-      return <AdminView publicKey={wallet.publicKey!} />;
+    // Only allow admin view if user is actually the admin
+    if (viewMode === 'admin' && isAdmin && adminAddress === wallet.publicKey) {
+      return <AdminView publicKey={wallet.publicKey} />;
+    }
+    
+    // If someone tries to access admin view but isn't admin, redirect to founder view
+    if (viewMode === 'admin' && (!isAdmin || adminAddress !== wallet.publicKey)) {
+      setViewMode('founder');
+      return <FounderView publicKey={wallet.publicKey} />;
     }
     
     switch (viewMode) {
       case 'vc':
-        return isVC ? <VCView publicKey={wallet.publicKey!} /> : <FounderView publicKey={wallet.publicKey!} />;
+        return <VCView publicKey={wallet.publicKey} />;
       case 'voting':
-        return <PublicVotingView publicKey={wallet.publicKey!} />;
+        return <PublicVotingView publicKey={wallet.publicKey} />;
       case 'founder':
       default:
-        return <FounderView publicKey={wallet.publicKey!} />;
+        return <FounderView publicKey={wallet.publicKey} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen relative">
+      <CyberBackground />
+      
       {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200">
+      <nav className="cyber-card border-0 border-b border-cyber-primary/30 backdrop-blur-xl relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-3">
                 <div className="text-4xl">🚀</div>
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-3xl font-bold cyber-title glitch" data-text="DeCo">
                     DeCo
                   </h1>
-                  <p className="text-xs text-gray-600">Decentralized Combinator</p>
+                  <p className="text-xs text-cyber-dim uppercase tracking-wider">Decentralized Combinator</p>
                 </div>
               </div>
               
               {/* Navigation Tabs */}
-              {wallet.isConnected && (
+              {wallet.isConnected && !adminLoading && (
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setViewMode('founder')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
                       viewMode === 'founder'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-cyber-primary/20 text-cyber-primary border border-cyber-primary'
+                        : 'text-cyber-text-dim hover:text-cyber-primary hover:bg-cyber-primary/10'
                     }`}
                   >
                     🚀 Founder
@@ -121,10 +138,10 @@ function AppContent() {
                   {isVC && (
                     <button
                       onClick={() => setViewMode('vc')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
                         viewMode === 'vc'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-cyber-secondary/20 text-cyber-secondary border border-cyber-secondary'
+                          : 'text-cyber-text-dim hover:text-cyber-secondary hover:bg-cyber-secondary/10'
                       }`}
                     >
                       💼 VC
@@ -132,21 +149,33 @@ function AppContent() {
                   )}
                   <button
                     onClick={() => setViewMode('voting')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
                       viewMode === 'voting'
-                        ? 'bg-green-100 text-green-700'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-cyber-accent/20 text-cyber-accent border border-cyber-accent'
+                        : 'text-cyber-text-dim hover:text-cyber-accent hover:bg-cyber-accent/10'
                     }`}
                   >
                     🗳️ Vote
                   </button>
-                  {isAdmin && (
+                  {!isVC && (
+                    <button
+                      onClick={() => setViewMode('vc')}
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
+                        viewMode === 'vc'
+                          ? 'bg-cyber-secondary/20 text-cyber-secondary border border-cyber-secondary'
+                          : 'text-cyber-text-dim hover:text-cyber-secondary hover:bg-cyber-secondary/10'
+                      }`}
+                    >
+                      💼 Become VC
+                    </button>
+                  )}
+                  {isAdmin && adminAddress === wallet.publicKey && (
                     <button
                       onClick={() => setViewMode('admin')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
                         viewMode === 'admin'
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-cyber-warning/20 text-cyber-warning border border-cyber-warning'
+                          : 'text-cyber-text-dim hover:text-cyber-warning hover:bg-cyber-warning/10'
                       }`}
                     >
                       👑 Admin
@@ -156,32 +185,32 @@ function AppContent() {
               )}
             </div>
             <div className="flex items-center space-x-4">
-              {wallet.isConnected ? (
+              {wallet.isConnected && wallet.publicKey ? (
                 <>
-                  <div className="flex items-center space-x-3 bg-gray-100 rounded-xl px-4 py-2">
+                  <div className="flex items-center space-x-3 cyber-card px-4 py-2">
                     <div className="text-2xl">
-                      {isAdmin ? '👑' : isVC ? '💼' : '🚀'}
+                      {isAdmin && adminAddress === wallet.publicKey ? '👑' : isVC ? '💼' : '🚀'}
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500">Connected as</div>
-                      <div className="text-sm font-mono font-semibold text-gray-800">
+                      <div className="text-xs text-cyber-dim uppercase tracking-wider">Connected</div>
+                      <div className="text-sm font-mono font-semibold text-cyber-primary">
                         {wallet.publicKey?.slice(0, 6)}...{wallet.publicKey?.slice(-6)}
                       </div>
                     </div>
                   </div>
-                  {isAdmin && (
-                    <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs px-4 py-2 rounded-full font-bold shadow-lg">
+                  {isAdmin && adminAddress === wallet.publicKey && (
+                    <span className="bg-gradient-to-r from-cyber-warning to-cyber-secondary text-black text-xs px-4 py-2 rounded-full font-bold shadow-lg neon-glow uppercase tracking-wider">
                       👑 ADMIN
                     </span>
                   )}
                   {isVC && !isAdmin && (
-                    <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-4 py-2 rounded-full font-bold shadow-lg">
+                    <span className="bg-gradient-to-r from-cyber-secondary to-cyber-primary text-white text-xs px-4 py-2 rounded-full font-bold shadow-lg neon-glow uppercase tracking-wider">
                       💼 VC
                     </span>
                   )}
                   <button
                     onClick={disconnectWallet}
-                    className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-xl hover:from-red-600 hover:to-pink-600 font-semibold shadow-lg hover:shadow-xl transition-all"
+                    className="cyber-btn px-6 py-3 text-sm"
                   >
                     Disconnect
                   </button>
@@ -189,7 +218,7 @@ function AppContent() {
               ) : (
                 <button
                   onClick={connectWallet}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+                  className="cyber-btn px-8 py-3 text-lg font-bold"
                 >
                   🔗 Connect Freighter
                 </button>
@@ -200,58 +229,59 @@ function AppContent() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {!wallet.isConnected ? (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+        {!wallet.isConnected || !wallet.publicKey ? (
           <div className="text-center py-20">
             <div className="mb-8">
-              <div className="text-8xl mb-6">🚀</div>
-              <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+              <div className="text-8xl mb-6 animate-pulse">🚀</div>
+              <h2 className="text-6xl font-bold cyber-title mb-4 glitch" data-text="Welcome to DeCo">
                 Welcome to DeCo
               </h2>
-              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                The decentralized accelerator platform powered by Stellar blockchain. 
+              <p className="text-xl text-cyber-text-dim mb-8 max-w-2xl mx-auto leading-relaxed">
+                The <span className="neon-blue">decentralized accelerator</span> platform powered by{' '}
+                <span className="neon-green">Stellar blockchain</span>. 
                 Connect your wallet to apply for funding, manage investments, or oversee the accelerator.
               </p>
             </div>
             
             <button
               onClick={connectWallet}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-5 rounded-2xl hover:from-blue-700 hover:to-purple-700 text-xl font-semibold shadow-2xl hover:shadow-3xl transition-all transform hover:scale-105"
+              className="cyber-btn px-12 py-6 text-2xl font-bold mb-20 hover-lift"
             >
               🔗 Connect Freighter Wallet
             </button>
 
             {/* Feature Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 max-w-5xl mx-auto">
-              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-blue-100 hover:border-blue-300 transition-all">
-                <div className="text-5xl mb-4">🚀</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-3">For Founders</h3>
-                <p className="text-gray-600">
+              <div className="cyber-card p-8 hover-glow hover-lift">
+                <div className="text-5xl mb-4 neon-blue">🚀</div>
+                <h3 className="text-xl font-bold cyber-subtitle mb-3">For Founders</h3>
+                <p className="text-cyber-text-dim">
                   Apply for funding and receive milestone-based investments directly to your wallet
                 </p>
               </div>
-              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-purple-100 hover:border-purple-300 transition-all">
-                <div className="text-5xl mb-4">💼</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-3">For VCs</h3>
-                <p className="text-gray-600">
-                  Monitor portfolio companies and track funding progress in real-time on-chain
+              <div className="cyber-card p-8 hover-glow hover-lift">
+                <div className="text-5xl mb-4 neon-pink">💼</div>
+                <h3 className="text-xl font-bold cyber-subtitle mb-3">For VCs</h3>
+                <p className="text-cyber-text-dim">
+                  Stake tokens to verify, then invest directly in approved startups
                 </p>
               </div>
-              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-indigo-100 hover:border-indigo-300 transition-all">
-                <div className="text-5xl mb-4">👑</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-3">For Admins</h3>
-                <p className="text-gray-600">
-                  Manage funding allocations, approve milestones, and oversee the entire platform
+              <div className="cyber-card p-8 hover-glow hover-lift">
+                <div className="text-5xl mb-4 neon-green">🗳️</div>
+                <h3 className="text-xl font-bold cyber-subtitle mb-3">For Community</h3>
+                <p className="text-cyber-text-dim">
+                  Vote on startup applications and help shape the future of DeCo
                 </p>
               </div>
             </div>
 
             {/* Blockchain Badge */}
-            <div className="mt-16 inline-flex items-center space-x-3 bg-white rounded-full px-8 py-4 shadow-lg border-2 border-gray-200">
-              <span className="text-2xl">⛓️</span>
+            <div className="mt-16 inline-flex items-center space-x-3 cyber-card px-8 py-4">
+              <span className="text-2xl neon-blue">⛓️</span>
               <div className="text-left">
-                <div className="text-xs text-gray-500">Powered by</div>
-                <div className="text-sm font-bold text-gray-800">Stellar Blockchain</div>
+                <div className="text-xs text-cyber-dim uppercase tracking-wider">Powered by</div>
+                <div className="text-sm font-bold neon-blue">Stellar Blockchain</div>
               </div>
             </div>
           </div>
@@ -261,17 +291,17 @@ function AppContent() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white/80 backdrop-blur-md border-t border-gray-200 mt-20">
+      <footer className="cyber-card border-0 border-t border-cyber-primary/30 backdrop-blur-xl mt-20 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
-            <div className="text-gray-600 text-sm">
-              © 2024 DeCo - Decentralized Combinator. Built on Stellar Testnet.
+            <div className="text-cyber-text-dim text-sm">
+              © 2024 DeCo - Decentralized Combinator. Built on <span className="neon-blue">Stellar Testnet</span>.
             </div>
             <div className="flex items-center space-x-6">
-              <a href="https://stellar.org" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600 text-sm">
+              <a href="https://stellar.org" target="_blank" rel="noopener noreferrer" className="text-cyber-text-dim hover:text-cyber-primary text-sm transition-colors">
                 Stellar Network
               </a>
-              <a href="https://soroban.stellar.org" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600 text-sm">
+              <a href="https://soroban.stellar.org" target="_blank" rel="noopener noreferrer" className="text-cyber-text-dim hover:text-cyber-primary text-sm transition-colors">
                 Soroban Docs
               </a>
             </div>

@@ -4,9 +4,9 @@ export interface StartupData {
   total_allocated: string;
   unlocked_balance: string;
   claimed_balance: string;
-  voting_end_time: number;
-  yes_votes: number;
-  no_votes: number;
+  voting_end_time: number | bigint; // Can be BigInt from blockchain
+  yes_votes: number | bigint; // Can be BigInt from blockchain
+  no_votes: number | bigint; // Can be BigInt from blockchain
   approved: boolean;
 }
 

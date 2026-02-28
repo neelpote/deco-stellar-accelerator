@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 // Pinata API configuration
-const PINATA_API_KEY = (import.meta as any).env?.VITE_PINATA_API_KEY || '';
-const PINATA_SECRET_KEY = (import.meta as any).env?.VITE_PINATA_SECRET_KEY || '';
-const PINATA_JWT = (import.meta as any).env?.VITE_PINATA_JWT || '';
+const PINATA_API_KEY = import.meta.env.VITE_PINATA_API_KEY || '';
+const PINATA_SECRET_KEY = import.meta.env.VITE_PINATA_SECRET_KEY || '';
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || '';
 
 // IPFS Gateway for reading
 const IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs/';
@@ -55,6 +55,13 @@ export const uploadToIPFS = async (metadata: Omit<ProjectMetadata, 'timestamp'>)
     return response.data.IpfsHash;
   } catch (error) {
     console.error('IPFS upload error:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+    }
     throw new Error('Failed to upload to IPFS. Please check your Pinata credentials.');
   }
 };
