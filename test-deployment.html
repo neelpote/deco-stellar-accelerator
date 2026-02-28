@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Deployment</title>
+</head>
+<body>
+    <h1>Testing Vercel Deployment</h1>
+    <p>Checking if the new XLM version is deployed...</p>
+    
+    <script>
+        // Test if we can access the deployed site
+        fetch('https://frontend-eight-navy-19.vercel.app')
+            .then(response => response.text())
+            .then(html => {
+                console.log('HTML Response:', html.substring(0, 500));
+                
+                // Check if it's loading the React app
+                if (html.includes('root') && html.includes('script')) {
+                    console.log('✅ React app structure detected');
+                } else {
+                    console.log('❌ No React app structure found');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error fetching deployment:', error);
+            });
+    </script>
+</body>
+</html>

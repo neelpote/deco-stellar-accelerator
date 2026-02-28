@@ -1,0 +1,115 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Smart Contract Build and Test
+  contract-build:
+    runs-on: ubuntu-latest
+    name: Build Smart Contract
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+        override: true
+    
+    - name: Install Soroban CLI
+      run: |
+        cargo install --locked soroban-cli --features opt
+    
+    - name: Build Contract
+      run: |
+        cd contract
+        soroban contract build
+    
+    - name: Upload Contract Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: contract-wasm
+        path: contract/target/wasm32-unknown-unknown/release/*.wasm
+
+  # Frontend Build and Test
+  frontend-build:
+    runs-on: ubuntu-latest
+    name: Build Frontend
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install Dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Type Check
+      run: |
+        cd frontend
+        npm run build
+    
+    - name: Upload Frontend Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: frontend/dist/
+
+  # Deploy to Vercel (on main branch only)
+  deploy:
+    needs: [contract-build, frontend-build]
+    runs-on: ubuntu-latest
+    name: Deploy to Vercel
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Vercel CLI
+      run: npm install -g vercel
+    
+    - name: Deploy to Vercel
+      run: |
+        cd frontend
+        vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
+      env:
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # Security and Quality Checks
+  security-check:
+    runs-on: ubuntu-latest
+    name: Security & Quality Check
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Rust Security Audit
+      run: |
+        cargo install cargo-audit
+        cd contract
+        cargo audit
+    
+    - name: Frontend Security Check
+      run: |
+        cd frontend
+        npm audit --audit-level moderate

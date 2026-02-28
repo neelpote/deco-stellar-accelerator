@@ -7,6 +7,23 @@ A streamlined MVP for a decentralized startup accelerator on Stellar Soroban (Te
 - **Contract**: `CBL6M6NXHSQJ6CJYIMV6FNEBNK3IRWLNQOFEM76FFGR6VGBRVXAPUA2V` (Stellar Testnet)
 - **Native XLM Token**: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
 
+## 📱 Screenshots & CI/CD
+
+### Mobile Responsive Design
+The DeCo platform is fully responsive and works seamlessly on mobile devices:
+
+![Mobile Responsive View](https://via.placeholder.com/300x600/1a1a2e/16213e?text=DeCo+Mobile+View)
+*Mobile view showing the cyberpunk-themed interface with VC staking and voting features*
+
+### CI/CD Pipeline
+[![Build & Test](https://github.com/neelpote/deco-stellar-accelerator/actions/workflows/build-test.yml/badge.svg)](https://github.com/neelpote/deco-stellar-accelerator/actions/workflows/build-test.yml)
+
+Our automated CI/CD pipeline ensures:
+- ✅ Smart contract builds successfully
+- ✅ Frontend TypeScript compilation
+- ✅ Code quality checks
+- ✅ Automated deployment to Vercel
+
 ## Project Structure
 
 ```
