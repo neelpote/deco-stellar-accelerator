@@ -1,142 +1,72 @@
-# DeCo MVP - Quick Start Guide
+# DeCo Platform - Quick Start Guide
 
-Get your DeCo MVP running in 5 minutes!
+## 🚀 Try It Now!
 
-## Prerequisites Checklist
+**Live Demo**: https://frontend-eight-navy-19.vercel.app
 
-- [ ] Rust installed (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
-- [ ] Soroban CLI installed (`cargo install --locked soroban-cli`)
-- [ ] Node.js v18+ installed
-- [ ] Freighter wallet extension installed and configured for Testnet
-- [ ] Testnet account funded (https://laboratory.stellar.org/#account-creator?network=test)
+## 30-Second Setup
 
-## One-Command Deployment
+### 1. Get Testnet XLM (2 minutes)
+- Visit: https://laboratory.stellar.org/#account-creator?network=test
+- Click "Generate keypair" → "Create account"
+- Save your keys and get 10,000 free testnet XLM
 
-```bash
-./deploy.sh
-```
+### 2. Install Freighter Wallet (1 minute)
+- Install: https://www.freighter.app/
+- Import your testnet account
+- Switch to "Testnet" in settings
 
-This script will:
-1. Build the smart contract
-2. Generate admin identity (if needed)
-3. Deploy to Stellar Testnet
-4. Initialize the contract
-5. Update frontend configuration
+### 3. Connect & Test (30 seconds)
+- Visit: https://frontend-eight-navy-19.vercel.app
+- Connect Freighter wallet
+- You're ready to test!
 
-## Manual Deployment (Alternative)
+## What You Can Test
 
-### Step 1: Build Contract
-```bash
-cd contract
-soroban contract build
-```
+### 🏢 As a Founder
+1. **Apply**: Fill out startup application form
+2. **Pay Fee**: 10 XLM application fee (automatic)
+3. **Wait**: 7-day public voting period
+4. **Get Approved**: Admin approves based on votes
+5. **Receive Funding**: VCs invest directly in XLM
 
-### Step 2: Deploy Contract
-```bash
-soroban keys generate admin --network testnet
-soroban contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/deco_mvp.wasm \
-  --source admin \
-  --network testnet
-```
+### 🗳️ As a Public Voter
+1. **Browse**: See all startup applications
+2. **Vote**: Yes/No during 7-day periods
+3. **Track**: Real-time vote counts and progress
 
-### Step 3: Initialize Contract
-```bash
-ADMIN_ADDRESS=$(soroban keys address admin)
-soroban contract invoke \
-  --id <YOUR_CONTRACT_ID> \
-  --source admin \
-  --network testnet \
-  -- \
-  init \
-  --admin $ADMIN_ADDRESS \
-  --fee 100000000
-```
+### 💼 As a VC (Need 1000+ XLM)
+1. **Stake**: Click "💼 Become VC" and stake 1000 XLM
+2. **Browse**: View approved startups
+3. **Invest**: Direct XLM investment (no admin needed)
+4. **Track**: Monitor your portfolio
 
-### Step 4: Update Frontend Config
-Edit `frontend/src/config.ts` and replace `YOUR_DEPLOYED_CONTRACT_ID_HERE` with your contract ID.
+### 👑 As Admin (Special Wallet)
+1. **Review**: Applications with vote results
+2. **Approve**: Based on community votes
+3. **Minimal Control**: Fully decentralized system
 
-## Run Frontend
+## Key Features to Test
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+- ✅ **No Trustlines**: XLM is native - works immediately
+- ✅ **DAO Voting**: Community decides on applications
+- ✅ **Direct Investment**: VCs invest without intermediaries
+- ✅ **IPFS Storage**: Metadata stored decentralized
+- ✅ **Real-time Updates**: Live balance and status checking
+- ✅ **Cyberpunk UI**: Web3-themed with animations
 
-Open http://localhost:3000
+## Contract Details
 
-## Test the Flow
+- **Network**: Stellar Testnet
+- **Contract**: `CBL6M6NXHSQJ6CJYIMV6FNEBNK3IRWLNQOFEM76FFGR6VGBRVXAPUA2V`
+- **XLM Token**: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
 
-### As a Founder:
-1. Connect Freighter wallet (non-admin account)
-2. Enter a project URL: `https://github.com/myproject`
-3. Click "Apply Now" - Freighter will prompt to sign (10 XLM fee)
-4. Wait for confirmation
+## Need Help?
 
-### As Admin:
-1. Disconnect current wallet
-2. Connect with admin wallet (the one used in deployment)
-3. You'll see "Admin Dashboard"
-4. **Allocate Funding:**
-   - Enter founder's address
-   - Enter total amount (e.g., 10000 USDC)
-   - Click "Allocate Funding"
-5. **Unlock Milestone:**
-   - Enter founder's address
-   - Enter amount to unlock (e.g., 2500 USDC)
-   - Click "Unlock Milestone"
+- **GitHub**: https://github.com/neelpote/deco-stellar-accelerator
+- **Issues**: Report bugs or ask questions
+- **Documentation**: Full guides in repository
 
-### Back to Founder:
-1. Reconnect founder wallet
-2. See updated status with unlocked funds
-3. Click "Claim Funds"
-4. Funds transferred to wallet!
+---
 
-## Common Issues
-
-### "Contract already initialized"
-The contract can only be initialized once. If you need to redeploy, deploy a new contract instance.
-
-### "Transaction failed"
-- Check you have enough XLM for transaction fees
-- Ensure Freighter is on Testnet
-- Verify contract ID is correct in config.ts
-
-### "Admin not set"
-Run the initialization command with your admin address.
-
-### Frontend shows "Loading..." forever
-- Check contract ID in `frontend/src/config.ts`
-- Verify contract is deployed and initialized
-- Check browser console for errors
-
-## Key Addresses
-
-After deployment, save these:
-- **Contract ID**: Found in deploy.sh output
-- **Admin Address**: Run `soroban keys address admin`
-
-## Testing Checklist
-
-- [ ] Founder can apply (10 XLM deducted)
-- [ ] Admin can allocate total funding
-- [ ] Admin can unlock milestone
-- [ ] Founder can claim unlocked funds
-- [ ] Status updates correctly after each action
-
-## Next Steps
-
-1. Test the complete flow with multiple founders
-2. Try unlocking funds in multiple milestones
-3. Verify USDC balances in Stellar Laboratory
-4. Customize the UI styling
-5. Add more features (rejection flow, analytics, etc.)
-
-## Support
-
-- Stellar Discord: https://discord.gg/stellar
-- Soroban Docs: https://soroban.stellar.org/docs
-- Freighter Docs: https://docs.freighter.app/
-
-Happy building! 🚀
+**Ready to test in under 3 minutes!** 🚀
