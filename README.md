@@ -2,6 +2,11 @@
 
 A streamlined MVP for a decentralized startup accelerator on Stellar Soroban (Testnet).
 
+## 🚀 Live Demo
+- **Frontend**: https://frontend-eight-navy-19.vercel.app
+- **Contract**: `CBL6M6NXHSQJ6CJYIMV6FNEBNK3IRWLNQOFEM76FFGR6VGBRVXAPUA2V` (Stellar Testnet)
+- **Native XLM Token**: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
+
 ## Project Structure
 
 ```
@@ -22,11 +27,14 @@ A streamlined MVP for a decentralized startup accelerator on Stellar Soroban (Te
 
 ## Features
 
-- **Anti-Spam**: 10 XLM application fee
-- **Milestone-Based Funding**: Admin unlocks funds progressively
-- **Testnet USDC**: Uses native Testnet USDC for funding
+- **DAO Voting**: 7-day public voting period for each application
+- **VC Staking**: VCs stake 1000 XLM to become verified (fully decentralized)
+- **Direct Investment**: VCs invest directly in approved startups
+- **IPFS Storage**: Metadata stored on IPFS for 95% storage reduction
+- **Native XLM**: Uses native XLM tokens for easy testing (no trustlines needed)
 - **React Query**: All RPC calls wrapped to prevent rate-limiting
 - **Freighter Integration**: Wallet connection and transaction signing
+- **Cyberpunk UI**: Web3-themed interface with animations and neon effects
 
 ## Prerequisites
 
@@ -77,7 +85,7 @@ Save the returned contract ID (e.g., `CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # Get your admin address
 ADMIN_ADDRESS=$(soroban keys address admin)
 
-# Initialize with 10 XLM fee (100000000 stroops)
+# Initialize with 10 XLM fee (100000000 stroops) and 1000 XLM VC stake (10000000000 stroops)
 soroban contract invoke \
   --id <CONTRACT_ID> \
   --source admin \
@@ -85,7 +93,8 @@ soroban contract invoke \
   -- \
   init \
   --admin $ADMIN_ADDRESS \
-  --fee 100000000
+  --fee 100000000 \
+  --vc_stake_required 10000000000
 ```
 
 ## Frontend Setup
@@ -114,27 +123,48 @@ Open http://localhost:3000
 ### For Founders
 
 1. Connect Freighter wallet
-2. Enter project URL (GitHub, pitch deck, etc.)
-3. Click "Apply Now" (pays 10 XLM fee)
-4. Wait for admin to allocate funding
-5. Claim unlocked funds when milestones are approved
+2. Fill out detailed application form (project name, description, URL, team info, funding goal)
+3. Upload metadata to IPFS automatically
+4. Submit application (pays 10 XLM fee)
+5. Wait for 7-day public voting period
+6. Admin approves based on votes
+7. Claim XLM funds when VCs invest
+
+### For Public Voters
+
+1. Connect any Stellar wallet
+2. Browse all submitted applications
+3. Vote Yes/No during 7-day voting period
+4. View real-time vote counts and progress
+
+### For VCs (Venture Capitalists)
+
+1. Connect Freighter wallet with 1000+ XLM
+2. Click "💼 Become VC" and stake 1000 XLM
+3. Browse approved startups
+4. Invest directly in XLM (no admin approval needed)
+5. Track your portfolio and investments
 
 ### For Admin
 
 1. Connect with admin wallet
-2. **Allocate Funding**: Set total USDC pool for a founder
-3. **Unlock Milestone**: Release specific amounts for claiming
+2. Review applications with vote results
+3. Approve applications based on community votes
+4. Minimal control - fully decentralized system
 
 ## Contract Functions
 
-- `init(admin, fee)` - Initialize contract
-- `apply(founder, project_link)` - Submit application with XLM fee
-- `fund_startup(admin, founder, total_amount)` - Allocate total funding
-- `unlock_milestone(admin, founder, amount)` - Unlock funds for claiming
-- `claim_funds(founder, usdc_token)` - Claim unlocked funds
-- `get_startup_status(founder)` - Read startup data
-- `get_admin()` - Get admin address
-- `get_fee()` - Get application fee
+- `init(admin, fee, vc_stake_required)` - Initialize contract
+- `apply(founder, ipfs_cid, funding_goal)` - Submit application with IPFS metadata
+- `vote(voter, founder, vote_yes)` - Vote on applications during 7-day period
+- `approve_application(admin, founder)` - Admin approves after reviewing votes
+- `stake_to_become_vc(vc_address, company_name, xlm_token)` - Stake XLM to become VC
+- `vc_invest(vc_address, founder, amount, xlm_token)` - VC invests in approved startup
+- `claim_funds(founder, xlm_token)` - Claim invested XLM funds
+- `get_all_startups()` - Get all submitted applications
+- `get_startup_status(founder)` - Read startup data and voting results
+- `get_vc_data(vc_address)` - Get VC information and stats
+- `has_voted(voter, founder)` - Check if address has voted
 
 ## Tech Stack
 
