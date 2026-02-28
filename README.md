@@ -7,13 +7,48 @@ A streamlined MVP for a decentralized startup accelerator on Stellar Soroban (Te
 - **Contract**: `CBL6M6NXHSQJ6CJYIMV6FNEBNK3IRWLNQOFEM76FFGR6VGBRVXAPUA2V` (Stellar Testnet)
 - **Native XLM Token**: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
 
+## 📋 Contract Information
+
+### Smart Contract Details
+- **Network**: Stellar Testnet
+- **Contract Address**: `CBL6M6NXHSQJ6CJYIMV6FNEBNK3IRWLNQOFEM76FFGR6VGBRVXAPUA2V`
+- **Deployment Hash**: [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBL6M6NXHSQJ6CJYIMV6FNEBNK3IRWLNQOFEM76FFGR6VGBRVXAPUA2V)
+- **Admin Address**: `GAZ27SJ7YFLUGO2O4JCTOWLNNXQZ5C7H5A7WFWEBALT6F6JELKJKNV44`
+
+### Token Addresses
+- **Native XLM Token**: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
+- **Application Fee**: 10 XLM (100,000,000 stroops)
+- **VC Stake Required**: 1000 XLM (10,000,000,000 stroops)
+
+### Inter-Contract Calls
+The DeCo platform uses the following inter-contract interactions:
+- **XLM Token Contract**: For native token transfers (staking, investments, claims)
+- **IPFS Integration**: Metadata storage via Pinata API
+- **Stellar Horizon**: Account balance and transaction monitoring
+
 ## 📱 Screenshots & CI/CD
 
 ### Mobile Responsive Design
 The DeCo platform is fully responsive and works seamlessly on mobile devices:
 
-![Mobile Responsive View](https://via.placeholder.com/300x600/1a1a2e/16213e?text=DeCo+Mobile+View)
-*Mobile view showing the cyberpunk-themed interface with VC staking and voting features*
+```
+📱 Mobile Features:
+┌─────────────────────┐
+│  🚀 DeCo Platform   │
+│ ─────────────────── │
+│ 💼 Become VC        │
+│ 🗳️  Public Voting    │
+│ 📝 Apply as Founder │
+│ 👑 Admin Panel      │
+│ ─────────────────── │
+│ • Touch-friendly UI │
+│ • Responsive design │
+│ • Wallet integration│
+│ • Cyberpunk theme   │
+└─────────────────────┘
+```
+
+*The platform features a cyberpunk-themed mobile interface with full wallet integration and responsive design*
 
 ### CI/CD Pipeline
 [![Build & Test](https://github.com/neelpote/deco-stellar-accelerator/actions/workflows/build-test.yml/badge.svg)](https://github.com/neelpote/deco-stellar-accelerator/actions/workflows/build-test.yml)
