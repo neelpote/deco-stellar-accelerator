@@ -104,21 +104,18 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen relative">
-      <CyberBackground />
-      
+    <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <nav className="cyber-card border-0 border-b border-cyber-primary/30 backdrop-blur-xl relative z-10">
+      <nav className="bg-white border-b-2 border-gray-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20">
+          <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-3">
-                <div className="text-4xl">🚀</div>
                 <div>
-                  <h1 className="text-3xl font-bold cyber-title glitch" data-text="DeCo">
+                  <h1 className="text-2xl font-bold text-gray-900">
                     DeCo
                   </h1>
-                  <p className="text-xs text-cyber-dim uppercase tracking-wider">Decentralized Combinator</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">Decentralized Combinator</p>
                 </div>
               </div>
               
@@ -127,58 +124,58 @@ function AppContent() {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setViewMode('founder')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
+                    className={`px-4 py-2 rounded-lg font-medium transition-all text-sm border-2 ${
                       viewMode === 'founder'
-                        ? 'bg-cyber-primary/20 text-cyber-primary border border-cyber-primary'
-                        : 'text-cyber-text-dim hover:text-cyber-primary hover:bg-cyber-primary/10'
+                        ? 'bg-blue-50 text-blue-700 border-blue-300'
+                        : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-gray-300'
                     }`}
                   >
-                    🚀 Founder
+                    Founder
                   </button>
                   {isVC && (
                     <button
                       onClick={() => setViewMode('vc')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
+                      className={`px-4 py-2 rounded-lg font-medium transition-all text-sm border-2 ${
                         viewMode === 'vc'
-                          ? 'bg-cyber-secondary/20 text-cyber-secondary border border-cyber-secondary'
-                          : 'text-cyber-text-dim hover:text-cyber-secondary hover:bg-cyber-secondary/10'
+                          ? 'bg-blue-50 text-blue-700 border-blue-300'
+                          : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-gray-300'
                       }`}
                     >
-                      💼 VC
+                      VC Dashboard
                     </button>
                   )}
                   <button
                     onClick={() => setViewMode('voting')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
+                    className={`px-4 py-2 rounded-lg font-medium transition-all text-sm border-2 ${
                       viewMode === 'voting'
-                        ? 'bg-cyber-accent/20 text-cyber-accent border border-cyber-accent'
-                        : 'text-cyber-text-dim hover:text-cyber-accent hover:bg-cyber-accent/10'
+                        ? 'bg-blue-50 text-blue-700 border-blue-300'
+                        : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-gray-300'
                     }`}
                   >
-                    🗳️ Vote
+                    Vote
                   </button>
                   {!isVC && (
                     <button
                       onClick={() => setViewMode('vc')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
+                      className={`px-4 py-2 rounded-lg font-medium transition-all text-sm border-2 ${
                         viewMode === 'vc'
-                          ? 'bg-cyber-secondary/20 text-cyber-secondary border border-cyber-secondary'
-                          : 'text-cyber-text-dim hover:text-cyber-secondary hover:bg-cyber-secondary/10'
+                          ? 'bg-blue-50 text-blue-700 border-blue-300'
+                          : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-gray-300'
                       }`}
                     >
-                      💼 Become VC
+                      Become VC
                     </button>
                   )}
                   {isAdmin && adminAddress === wallet.publicKey && (
                     <button
                       onClick={() => setViewMode('admin')}
-                      className={`px-4 py-2 rounded-lg font-semibold transition-all uppercase tracking-wide ${
+                      className={`px-4 py-2 rounded-lg font-medium transition-all text-sm border-2 ${
                         viewMode === 'admin'
-                          ? 'bg-cyber-warning/20 text-cyber-warning border border-cyber-warning'
-                          : 'text-cyber-text-dim hover:text-cyber-warning hover:bg-cyber-warning/10'
+                          ? 'bg-amber-50 text-amber-700 border-amber-300'
+                          : 'text-gray-600 hover:text-amber-600 hover:bg-gray-50 border-gray-300'
                       }`}
                     >
-                      👑 Admin
+                      Admin
                     </button>
                   )}
                 </div>
@@ -187,30 +184,27 @@ function AppContent() {
             <div className="flex items-center space-x-4">
               {wallet.isConnected && wallet.publicKey ? (
                 <>
-                  <div className="flex items-center space-x-3 cyber-card px-4 py-2">
-                    <div className="text-2xl">
-                      {isAdmin && adminAddress === wallet.publicKey ? '👑' : isVC ? '💼' : '🚀'}
-                    </div>
+                  <div className="flex items-center space-x-3 bg-gray-50 border-2 border-gray-300 rounded-lg px-4 py-2">
                     <div>
-                      <div className="text-xs text-cyber-dim uppercase tracking-wider">Connected</div>
-                      <div className="text-sm font-mono font-semibold text-cyber-primary">
+                      <div className="text-xs text-gray-500 uppercase tracking-wider">Connected</div>
+                      <div className="text-sm font-mono font-semibold text-gray-900">
                         {wallet.publicKey?.slice(0, 6)}...{wallet.publicKey?.slice(-6)}
                       </div>
                     </div>
                   </div>
                   {isAdmin && adminAddress === wallet.publicKey && (
-                    <span className="bg-gradient-to-r from-cyber-warning to-cyber-secondary text-black text-xs px-4 py-2 rounded-full font-bold shadow-lg neon-glow uppercase tracking-wider">
-                      👑 ADMIN
+                    <span className="bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wider border-2 border-amber-300">
+                      Admin
                     </span>
                   )}
                   {isVC && !isAdmin && (
-                    <span className="bg-gradient-to-r from-cyber-secondary to-cyber-primary text-white text-xs px-4 py-2 rounded-full font-bold shadow-lg neon-glow uppercase tracking-wider">
-                      💼 VC
+                    <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wider border-2 border-blue-300">
+                      VC
                     </span>
                   )}
                   <button
                     onClick={disconnectWallet}
-                    className="cyber-btn px-6 py-3 text-sm"
+                    className="btn btn-primary px-6 py-2 text-sm"
                   >
                     Disconnect
                   </button>
@@ -218,9 +212,9 @@ function AppContent() {
               ) : (
                 <button
                   onClick={connectWallet}
-                  className="cyber-btn px-8 py-3 text-lg font-bold"
+                  className="btn btn-primary px-6 py-2 text-sm"
                 >
-                  🔗 Connect Freighter
+                  Connect Wallet
                 </button>
               )}
             </div>
@@ -229,59 +223,53 @@ function AppContent() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {!wallet.isConnected || !wallet.publicKey ? (
           <div className="text-center py-20">
-            <div className="mb-8">
-              <div className="text-8xl mb-6 animate-pulse">🚀</div>
-              <h2 className="text-6xl font-bold cyber-title mb-4 glitch" data-text="Welcome to DeCo">
+            <div className="mb-12">
+              <h2 className="text-5xl font-bold text-gray-900 mb-4">
                 Welcome to DeCo
               </h2>
-              <p className="text-xl text-cyber-text-dim mb-8 max-w-2xl mx-auto leading-relaxed">
-                The <span className="neon-blue">decentralized accelerator</span> platform powered by{' '}
-                <span className="neon-green">Stellar blockchain</span>. 
+              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+                The decentralized accelerator platform powered by Stellar blockchain. 
                 Connect your wallet to apply for funding, manage investments, or oversee the accelerator.
               </p>
             </div>
             
             <button
               onClick={connectWallet}
-              className="cyber-btn px-12 py-6 text-2xl font-bold mb-20 hover-lift"
+              className="btn btn-primary px-8 py-3 text-lg font-semibold mb-20"
             >
-              🔗 Connect Freighter Wallet
+              Connect Freighter Wallet
             </button>
 
             {/* Feature Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 max-w-5xl mx-auto">
-              <div className="cyber-card p-8 hover-glow hover-lift">
-                <div className="text-5xl mb-4 neon-blue">🚀</div>
-                <h3 className="text-xl font-bold cyber-subtitle mb-3">For Founders</h3>
-                <p className="text-cyber-text-dim">
+              <div className="card">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">For Founders</h3>
+                <p className="text-gray-600">
                   Apply for funding and receive milestone-based investments directly to your wallet
                 </p>
               </div>
-              <div className="cyber-card p-8 hover-glow hover-lift">
-                <div className="text-5xl mb-4 neon-pink">💼</div>
-                <h3 className="text-xl font-bold cyber-subtitle mb-3">For VCs</h3>
-                <p className="text-cyber-text-dim">
+              <div className="card">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">For VCs</h3>
+                <p className="text-gray-600">
                   Stake tokens to verify, then invest directly in approved startups
                 </p>
               </div>
-              <div className="cyber-card p-8 hover-glow hover-lift">
-                <div className="text-5xl mb-4 neon-green">🗳️</div>
-                <h3 className="text-xl font-bold cyber-subtitle mb-3">For Community</h3>
-                <p className="text-cyber-text-dim">
+              <div className="card">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">For Community</h3>
+                <p className="text-gray-600">
                   Vote on startup applications and help shape the future of DeCo
                 </p>
               </div>
             </div>
 
             {/* Blockchain Badge */}
-            <div className="mt-16 inline-flex items-center space-x-3 cyber-card px-8 py-4">
-              <span className="text-2xl neon-blue">⛓️</span>
+            <div className="mt-16 inline-flex items-center space-x-3 bg-white border-2 border-gray-300 rounded-lg px-6 py-3">
               <div className="text-left">
-                <div className="text-xs text-cyber-dim uppercase tracking-wider">Powered by</div>
-                <div className="text-sm font-bold neon-blue">Stellar Blockchain</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Powered by</div>
+                <div className="text-sm font-semibold text-blue-600">Stellar Blockchain</div>
               </div>
             </div>
           </div>
@@ -291,17 +279,17 @@ function AppContent() {
       </main>
 
       {/* Footer */}
-      <footer className="cyber-card border-0 border-t border-cyber-primary/30 backdrop-blur-xl mt-20 relative z-10">
+      <footer className="bg-white border-t-2 border-gray-300 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
-            <div className="text-cyber-text-dim text-sm">
-              © 2024 DeCo - Decentralized Combinator. Built on <span className="neon-blue">Stellar Testnet</span>.
+            <div className="text-gray-500 text-sm">
+              © 2024 DeCo - Decentralized Combinator. Built on Stellar Testnet.
             </div>
             <div className="flex items-center space-x-6">
-              <a href="https://stellar.org" target="_blank" rel="noopener noreferrer" className="text-cyber-text-dim hover:text-cyber-primary text-sm transition-colors">
+              <a href="https://stellar.org" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 text-sm transition-colors">
                 Stellar Network
               </a>
-              <a href="https://soroban.stellar.org" target="_blank" rel="noopener noreferrer" className="text-cyber-text-dim hover:text-cyber-primary text-sm transition-colors">
+              <a href="https://soroban.stellar.org" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 text-sm transition-colors">
                 Soroban Docs
               </a>
             </div>
